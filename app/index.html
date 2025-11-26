@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://nominatim.openstreetmap.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tfhub.dev https://www.kaggle.com https://storage.googleapis.com https://*.googleapis.com https://detect.roboflow.com https://api.roboflow.com https://*.roboflow.com; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:;">
+  <title>Litteryl - Turn Trash Into Rewards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="logo">🗑️ Litteryl</h1>
+        <div class="user-stats" id="headerStats">
+          <span class="points-badge" id="headerPoints">0 pts</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Location Status Banner -->
+      <div class="location-banner" id="locationBanner">
+        <div class="location-status" id="locationStatus">
+          <span class="status-icon">📍</span>
+          <span class="status-text">Checking location...</span>
+        </div>
+      </div>
+
+      <!-- Camera/Video Section -->
+      <section class="camera-section" id="cameraSection">
+        <div class="video-container">
+          <video id="videoPreview" autoplay playsinline muted></video>
+          <canvas id="detectionCanvas"></canvas>
+          <div class="video-overlay" id="videoOverlay">
+            <div class="overlay-content">
+              <span class="camera-icon">📹</span>
+              <p>Tap to start camera</p>
+            </div>
+          </div>
+          <div class="recording-indicator" id="recordingIndicator">
+            <span class="rec-dot"></span>
+            <span class="rec-text">REC</span>
+            <span class="rec-time" id="recTime">00:00</span>
+          </div>
+          <div class="detection-badge hidden" id="detectionBadge">
+            <span class="detection-icon">🔍</span>
+            <span class="detection-text">Detecting...</span>
+          </div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="camera-controls">
+          <button class="control-btn" id="switchCameraBtn" title="Switch Camera">
+            🔄
+          </button>
+          <button class="record-btn" id="recordBtn" disabled>
+            <span class="record-icon"></span>
+          </button>
+          <button class="control-btn" id="detectBtn" title="Live Detection" disabled>
+            🔍
+          </button>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions" id="instructions">
+          <h3>How to earn points:</h3>
+          <ol>
+            <li>📍 Be in a public place (park, street, etc.)</li>
+            <li>📹 Record yourself picking up litter</li>
+            <li>🗑️ Show the disposal in a bin</li>
+            <li>🎁 Earn points and get rewards!</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Processing Section -->
+      <section class="processing-section hidden" id="processingSection">
+        <div class="processing-card">
+          <div class="processing-animation">
+            <div class="spinner"></div>
+          </div>
+          <h2>Analyzing your video...</h2>
+          <p id="processingStatus">Detecting litter and verifying disposal</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Section -->
+      <section class="results-section hidden" id="resultsSection">
+        <div class="results-card" id="resultsCard">
+          <!-- Populated by JavaScript -->
+        </div>
+        <button class="btn btn-primary btn-large" id="newRecordingBtn">
+          Record Another
+        </button>
+      </section>
+
+      <!-- Stats Section -->
+      <section class="stats-section" id="statsSection">
+        <h2>Your Progress</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon">🏆</span>
+            <span class="stat-value" id="totalPoints">0</span>
+            <span class="stat-label">Points</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">📦</span>
+            <span class="stat-value" id="submissions">0</span>
+            <span class="stat-label">Submissions</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🔥</span>
+            <span class="stat-value" id="streak">0</span>
+            <span class="stat-label">Day Streak</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon" id="levelIcon">🌱</span>
+            <span class="stat-value" id="levelName">Beginner</span>
+            <span class="stat-label">Level</span>
+          </div>
+        </div>
+
+        <!-- Level Progress -->
+        <div class="level-progress" id="levelProgress">
+          <div class="level-info">
+            <span id="currentLevel">Eco Beginner</span>
+            <span id="nextLevel">Next: Litter Picker</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="levelProgressFill" style="width: 0%"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rewards Section -->
+      <section class="rewards-section" id="rewardsSection">
+        <h2>Available Rewards</h2>
+        <div class="rewards-grid" id="rewardsGrid">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Reward Modal -->
+    <div class="modal hidden" id="rewardModal">
+      <div class="modal-content">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div id="modalBody">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+  </div>
+
+  <!-- Roboflow Trash Detection API (no heavy TensorFlow download needed!) -->
+  <script src="app.js"></script>
+</body>
+</html>
