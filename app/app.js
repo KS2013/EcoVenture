@@ -1,19 +1,84 @@
 /**
- * Litteryl - Desktop/Mobile Application
- * Video recording with Roboflow Trash Detection API
- * Detects: cans, plastic bags, bottles, paper, cigarettes, and more!
+ * Eco Earning - Desktop/Mobile Application
+ * AI Detection with COCO-SSD + Confidence Boosting
+ * TrashAI integration (free, no API key needed)
  */
-
-// Roboflow API Configuration
-const ROBOFLOW_API_KEY = 'rf_KkMEplwiCgYtwUBmuibX8PFL4PR2';
-// Using garbage_detection model - better for general trash detection
-const ROBOFLOW_MODEL = 'garbage_detection-wvzwv/9';
-const ROBOFLOW_API_URL = `https://detect.roboflow.com/${ROBOFLOW_MODEL}`;
 
 // Configuration
 const MAX_RECORDING_TIME = 30;
 const MIN_RECORDING_TIME = 3;
-const DETECTION_INTERVAL = 1000; // 1 second between API calls to save credits
+const DETECTION_INTERVAL = 250; // Faster detection (was 300)
+const MIN_CONFIDENCE = 0.10; // Lower threshold for detection (was 0.15)
+
+// TrashAI endpoint (free public API)
+const TRASHAI_ENDPOINT = 'https://trashai.org/api/detect';
+
+// TACO API - Trash Annotations in Context (specialized trash detection)
+const TACO_API_ENDPOINT = 'https://api.taco-dataset.org/detect';
+
+// TRASH ITEMS - expanded list with ALL possible COCO classes that could be trash/litter
+const COCO_TRASH_CLASSES = [
+  // Bottles & Containers - MOST COMMON
+  'bottle', 'cup', 'wine glass', 'bowl', 'vase',
+  // Food & Food Waste - expanded
+  'banana', 'apple', 'orange', 'sandwich', 'hot dog', 'pizza', 'donut', 'cake', 'carrot', 'broccoli',
+  // Utensils - often littered
+  'fork', 'knife', 'spoon',
+  // Sports & Recreation items (often left behind)
+  'frisbee', 'sports ball', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'kite',
+  // Bags and containers - expanded
+  'handbag', 'tie', 'umbrella', 'suitcase', 'backpack',
+  // Additional items that can be litter
+  'scissors', 'toothbrush', 'hair drier', // personal items often discarded
+  'book', // paper waste
+  'clock', // electronics waste
+  'remote', // electronics waste
+  'cell phone', // broken phones are e-waste
+  'mouse', // e-waste
+  'keyboard' // e-waste
+];
+
+// TACO trash categories for specialized detection
+const TACO_TRASH_CATEGORIES = [
+  'Plastic bag & wrapper', 'Bottle', 'Bottle cap', 'Can', 'Carton',
+  'Cup', 'Lid', 'Straw', 'Cigarette', 'Paper', 'Cardboard',
+  'Plastic container', 'Plastic utensils', 'Food waste', 'Glass',
+  'Metal', 'Styrofoam', 'Wrapper', 'Other plastic', 'Rope & strings',
+  'Shoe', 'Squeezable tube', 'Broken glass', 'Aluminium foil',
+  'Battery', 'Blister pack', 'Carded blister pack', 'Clear plastic bottle',
+  'Corrugated carton', 'Crisp packet', 'Disposable food container',
+  'Disposable plastic cup', 'Drink can', 'Drink carton', 'Egg carton',
+  'Foam cup', 'Foam food container', 'Food Can', 'Food waste',
+  'Garbage bag', 'Glass bottle', 'Glass cup', 'Glass jar', 'Magazine paper',
+  'Meal carton', 'Metal bottle cap', 'Metal lid', 'Normal paper',
+  'Other carton', 'Other plastic bottle', 'Other plastic container',
+  'Other plastic cup', 'Other plastic wrapper', 'Paper bag', 'Paper cup',
+  'Paper straw', 'Pizza box', 'Plastic bottle cap', 'Plastic film',
+  'Plastic glooves', 'Plastic lid', 'Plastic straw', 'Plastic utensils',
+  'Polypropylene bag', 'Pop tab', 'Rope & strings', 'Scrap metal',
+  'Single-use carrier bag', 'Six pack rings', 'Spread tub', 'Squeezable tube',
+  'Styrofoam piece', 'Tissues', 'Toilet tube', 'Tupperware', 'Unlabeled litter',
+  'Wrapping paper'
+];
+
+// Items to ALWAYS IGNORE - definitely not trash (reduced list - more items now detectable as trash)
+const IGNORE_CLASSES = [
+  'person', // people are not trash
+  'car', 'truck', 'bicycle', 'motorcycle', 'bus', 'train', 'airplane', 'boat', // vehicles
+  'cat', 'dog', 'horse', 'bird', 'cow', 'sheep', 'elephant', 'bear', 'zebra', 'giraffe', // animals
+  'chair', 'couch', 'bed', 'dining table', 'toilet', // furniture
+  'teddy bear', 'potted plant', // household items
+  'refrigerator', 'oven', 'microwave', 'sink', 'toaster', 'tv', 'monitor', 'laptop' // large appliances
+];
+
+// Confidence boosting - tracks detections across frames
+const confidenceTracker = {
+  detections: new Map(), // itemClass -> { count, lastSeen, confidence }
+  frameCount: 0,
+  BOOST_THRESHOLD: 2, // Fewer frames needed to boost (was 3)
+  DECAY_FRAMES: 8, // More frames before decay (was 5)
+  BOOST_MULTIPLIER: 1.8 // Higher boost multiplier (was 1.5)
+};
 
 // State
 const state = {
@@ -28,14 +93,24 @@ const state = {
   currentLocation: null,
   locationVerified: true,
   facingMode: 'user',
-  modelLoaded: true, // Roboflow API is always "ready"
+  modelLoaded: false,
+  cocoModel: null,
+  trashAIAvailable: false,
+  tacoAPIAvailable: false,
   isDetecting: false,
   detectedItems: new Set(),
   personDetected: false,
   framesWithPerson: 0,
   framesWithTrash: 0,
   totalFramesAnalyzed: 0,
-  detectionLoop: null
+  detectionLoop: null,
+  // Auth state
+  isLoggedIn: false,
+  authUser: null,
+  userProfile: null,
+  currentTab: 'home',
+  currentLeaderboard: 'area',
+  rewardCategory: 'all'
 };
 
 // DOM Elements
@@ -75,29 +150,164 @@ const elements = {
 
 // Initialize App
 async function init() {
-  console.log('Initializing Litteryl with Roboflow Trash Detection...');
+  console.log('Initializing Eco Earning with Enhanced AI Detection...');
+
+  // Initialize Supabase if available
+  if (window.EcoQuestAuth) {
+    window.EcoQuestAuth.init();
+  }
 
   // Get user data
   if (window.electronAPI) {
     state.userId = await window.electronAPI.getUserId();
     state.userData = await window.electronAPI.getUserData();
   } else {
-    state.userId = localStorage.getItem('litteryl_user_id') || `user_${Date.now()}`;
-    localStorage.setItem('litteryl_user_id', state.userId);
-    state.userData = JSON.parse(localStorage.getItem('litteryl_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0}');
+    state.userId = localStorage.getItem('ecoquest_user_id') || `user_${Date.now()}`;
+    localStorage.setItem('ecoquest_user_id', state.userId);
+    state.userData = JSON.parse(localStorage.getItem('ecoquest_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0,"redemptionHistory":[]}');
   }
 
   setupEventListeners();
+  setupTabNavigation();
+  setupAuthListeners();
   updateLocationStatus('valid', '✓ Demo Mode');
   updateStatsUI();
   await loadRewards();
 
-  // Enable buttons immediately - no model download needed!
-  elements.detectBtn.disabled = false;
-  showToast('Ready! Roboflow Trash AI loaded', 'success');
+  // Load AI models
+  await loadModels();
 }
 
-function setupEventListeners() {
+async function loadModels() {
+  try {
+    showToast('Loading AI models...', 'info');
+    elements.detectBtn.disabled = true;
+
+    // Load COCO-SSD (primary detection)
+    state.cocoModel = await cocoSsd.load({
+      base: 'lite_mobilenet_v2' // Faster model
+    });
+    console.log('COCO-SSD model loaded successfully');
+
+    // Check external API availability in parallel
+    const [trashAIAvailable, tacoAvailable] = await Promise.all([
+      checkTrashAI(),
+      checkTACOAPI()
+    ]);
+
+    state.trashAIAvailable = trashAIAvailable;
+    state.tacoAPIAvailable = tacoAvailable;
+
+    state.modelLoaded = true;
+    elements.detectBtn.disabled = false;
+
+    // Show status based on available models
+    const models = ['COCO-SSD (enhanced)'];
+    if (state.trashAIAvailable) models.push('TrashAI');
+    if (state.tacoAPIAvailable) models.push('TACO');
+
+    showToast(`AI Ready! (${models.join(' + ')})`, 'success');
+    console.log('Available AI models:', models);
+  } catch (error) {
+    console.error('Failed to load models:', error);
+    showToast('AI models failed to load. Refresh to retry.', 'error');
+  }
+}
+
+// TrashAI Integration (https://trashai.org) - Free, no API key needed
+async function checkTrashAI() {
+  try {
+    // Test if TrashAI endpoint is reachable
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch(TRASHAI_ENDPOINT, {
+      method: 'HEAD',
+      signal: controller.signal
+    }).catch(() => null);
+
+    clearTimeout(timeoutId);
+    return response !== null;
+  } catch (e) {
+    console.warn('TrashAI not available:', e.message);
+    return false;
+  }
+}
+
+async function detectWithTrashAI(imageData) {
+  if (!state.trashAIAvailable) return [];
+
+  try {
+    const response = await fetch(TRASHAI_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ image: imageData })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // TrashAI returns detections with label and confidence
+      return data.detections || data.predictions || [];
+    }
+  } catch (e) {
+    console.warn('TrashAI detection failed:', e.message);
+  }
+  return [];
+}
+
+// Confidence Boosting System
+function updateConfidenceTracker(detections) {
+  confidenceTracker.frameCount++;
+
+  // Update existing detections
+  for (const [itemClass, data] of confidenceTracker.detections) {
+    const framesSinceLastSeen = confidenceTracker.frameCount - data.lastSeen;
+    if (framesSinceLastSeen > confidenceTracker.DECAY_FRAMES) {
+      // Remove stale detections
+      confidenceTracker.detections.delete(itemClass);
+    }
+  }
+
+  // Add/update current detections
+  detections.forEach(det => {
+    const itemClass = det.class.toLowerCase();
+    const existing = confidenceTracker.detections.get(itemClass);
+
+    if (existing) {
+      existing.count++;
+      existing.lastSeen = confidenceTracker.frameCount;
+      existing.rawConfidence = det.score;
+      // Boost confidence based on persistence
+      if (existing.count >= confidenceTracker.BOOST_THRESHOLD) {
+        existing.boostedConfidence = Math.min(det.score * confidenceTracker.BOOST_MULTIPLIER, 0.99);
+      }
+    } else {
+      confidenceTracker.detections.set(itemClass, {
+        count: 1,
+        lastSeen: confidenceTracker.frameCount,
+        rawConfidence: det.score,
+        boostedConfidence: det.score
+      });
+    }
+  });
+}
+
+function getBoostedConfidence(itemClass, rawScore) {
+  const data = confidenceTracker.detections.get(itemClass.toLowerCase());
+  if (data && data.count >= confidenceTracker.BOOST_THRESHOLD) {
+    return data.boostedConfidence;
+  }
+  return rawScore;
+}
+
+function resetConfidenceTracker() {
+  confidenceTracker.detections.clear();
+  confidenceTracker.frameCount = 0;
+}
+
+function setupEventListeners() {s
   elements.videoOverlay.addEventListener('click', startCamera);
   elements.recordBtn.addEventListener('click', toggleRecording);
   elements.switchCameraBtn.addEventListener('click', switchCamera);
@@ -107,46 +317,6 @@ function setupEventListeners() {
   elements.rewardModal.addEventListener('click', (e) => {
     if (e.target === elements.rewardModal) closeModal();
   });
-}
-
-// Roboflow API Detection
-async function detectTrashWithRoboflow(imageBase64) {
-  try {
-    // Add confidence threshold parameter for better detection
-    const url = `${ROBOFLOW_API_URL}?api_key=${ROBOFLOW_API_KEY}&confidence=20&overlap=30`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: imageBase64
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Response:', response.status, errorText);
-      throw new Error(`API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Roboflow response:', data);
-    return data.predictions || [];
-  } catch (error) {
-    console.error('Roboflow API error:', error);
-    return [];
-  }
-}
-
-// Capture frame from video as base64
-function captureFrame() {
-  const canvas = document.createElement('canvas');
-  canvas.width = elements.videoPreview.videoWidth || 640;
-  canvas.height = elements.videoPreview.videoHeight || 480;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(elements.videoPreview, 0, 0, canvas.width, canvas.height);
-  // Return base64 without the data:image/jpeg;base64, prefix
-  return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
 }
 
 // Camera Functions
@@ -172,7 +342,7 @@ async function startCamera() {
     elements.videoOverlay.classList.add('hidden');
     elements.recordBtn.disabled = false;
 
-    showToast('Camera ready! Click 🔍 for live trash detection', 'success');
+    showToast('Camera ready! Click the magnifier for live detection', 'success');
   } catch (error) {
     console.error('Camera error:', error);
     showToast('Camera error: ' + error.message, 'error');
@@ -203,10 +373,16 @@ function startDetection() {
     return;
   }
 
+  if (!state.modelLoaded) {
+    showToast('AI model still loading...', 'warning');
+    return;
+  }
+
   state.isDetecting = true;
+  resetConfidenceTracker();
   elements.detectBtn.classList.add('active');
   elements.detectionBadge.classList.remove('hidden');
-  updateDetectionBadge('Scanning for trash...', 'blue');
+  updateDetectionBadge('Scanning...', 'blue');
 
   runDetectionLoop();
 }
@@ -217,7 +393,7 @@ function stopDetection() {
   elements.detectionBadge.classList.add('hidden');
 
   if (state.detectionLoop) {
-    clearTimeout(state.detectionLoop);
+    cancelAnimationFrame(state.detectionLoop);
     state.detectionLoop = null;
   }
 
@@ -239,76 +415,143 @@ function updateDetectionBadge(text, color) {
 }
 
 async function runDetectionLoop() {
-  if (!state.isDetecting) return;
+  if (!state.isDetecting || !state.modelLoaded) return;
 
   try {
-    // Capture current frame
-    const frameBase64 = captureFrame();
+    // Run COCO-SSD detection
+    const allPredictions = await state.cocoModel.detect(elements.videoPreview);
 
-    // Call Roboflow API
-    const predictions = await detectTrashWithRoboflow(frameBase64);
+    // Filter out ignored classes FIRST (phones, laptops, cars, people, etc.)
+    const cocoPredictions = allPredictions.filter(p =>
+      !IGNORE_CLASSES.includes(p.class.toLowerCase())
+    );
 
-    // Draw detections
-    drawDetections(predictions);
+    // Update confidence tracker for boosting (only with filtered predictions)
+    updateConfidenceTracker(cocoPredictions);
 
-    // Process results - lower threshold to 20% confidence
-    const trashItems = predictions.filter(p => p.confidence > 0.2);
-    const trashFound = trashItems.length > 0;
+    // Filter for trash items with confidence boosting - LOWER THRESHOLD
+    const trashItems = cocoPredictions.filter(p => {
+      if (!COCO_TRASH_CLASSES.includes(p.class.toLowerCase())) return false;
+      const boostedScore = getBoostedConfidence(p.class, p.score);
+      return boostedScore > MIN_CONFIDENCE; // Use configurable threshold (0.15)
+    }).map(p => ({
+      ...p,
+      boostedScore: getBoostedConfidence(p.class, p.score)
+    }));
+
+    // Run TrashAI if available (less frequently to reduce API calls)
+    let trashAIResults = [];
+    const shouldCallTrashAI = state.trashAIAvailable && (confidenceTracker.frameCount % 5 === 0);
+
+    if (shouldCallTrashAI) {
+      // Capture frame for TrashAI API
+      const canvas = document.createElement('canvas');
+      canvas.width = elements.videoPreview.videoWidth;
+      canvas.height = elements.videoPreview.videoHeight;
+      canvas.getContext('2d').drawImage(elements.videoPreview, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+      trashAIResults = await detectWithTrashAI(imageData);
+    }
+
+    // Detect person for verification (use allPredictions, not filtered)
+    const personDetected = allPredictions.some(p => p.class === 'person' && p.score > 0.5);
+
+    // Draw detections - only shows trash items (filtered)
+    drawDetections(cocoPredictions, trashItems);
+
+    // Combine all results for stats
+    const allTrashItems = [
+      ...trashItems.map(p => ({ class: p.class, score: p.boostedScore })),
+      ...trashAIResults.map(p => ({ class: p.label || p.class, score: p.confidence || p.score }))
+    ];
+
+    const trashFound = allTrashItems.length > 0;
 
     if (trashFound) {
-      const items = [...new Set(trashItems.map(p => p.class))];
-      updateDetectionBadge(`🗑️ Found: ${items.join(', ')}`, 'green');
-      trashItems.forEach(p => state.detectedItems.add(p.class));
+      // Get unique items with best confidence
+      const itemMap = new Map();
+      allTrashItems.forEach(item => {
+        const existing = itemMap.get(item.class);
+        if (!existing || existing.score < item.score) {
+          itemMap.set(item.class, item);
+        }
+      });
+
+      const displayItems = Array.from(itemMap.keys()).slice(0, 3);
+      const confidenceInfo = confidenceTracker.detections.get(displayItems[0]?.toLowerCase());
+      const boostIndicator = confidenceInfo?.count >= confidenceTracker.BOOST_THRESHOLD ? ' +' : '';
+
+      updateDetectionBadge(`Found: ${displayItems.join(', ')}${boostIndicator}`, 'green');
+
+      // Add to detected items set
+      allTrashItems.forEach(item => state.detectedItems.add(item.class));
+    } else if (personDetected) {
+      updateDetectionBadge('Person detected, show trash!', 'yellow');
     } else {
-      updateDetectionBadge('Scanning for trash...', 'blue');
+      updateDetectionBadge('Scanning...', 'blue');
     }
 
     // Update stats for recording
     if (state.isRecording) {
       state.totalFramesAnalyzed++;
       if (trashFound) state.framesWithTrash++;
+      if (personDetected) state.framesWithPerson++;
+    }
+
+    // Debug logging
+    if (trashItems.length > 0) {
+      console.log('Detected:', trashItems.map(p =>
+        `${p.class} ${(p.score*100).toFixed(0)}%->${(p.boostedScore*100).toFixed(0)}%`
+      ).join(', '));
     }
 
   } catch (error) {
     console.error('Detection error:', error);
-    updateDetectionBadge('Detection error', 'red');
   }
 
-  // Schedule next detection (1 second interval to save API credits)
-  state.detectionLoop = setTimeout(() => runDetectionLoop(), DETECTION_INTERVAL);
+  // Schedule next detection
+  setTimeout(() => {
+    if (state.isDetecting) runDetectionLoop();
+  }, DETECTION_INTERVAL);
 }
 
-function drawDetections(predictions) {
+function drawDetections(predictions, trashItems) {
   const ctx = elements.detectionCanvas.getContext('2d');
   const canvas = elements.detectionCanvas;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (predictions.length === 0) return;
-
-  // Scale factors for drawing
-  const scaleX = canvas.width / (elements.videoPreview.videoWidth || 640);
-  const scaleY = canvas.height / (elements.videoPreview.videoHeight || 480);
-
   predictions.forEach(prediction => {
-    if (prediction.confidence < 0.2) return;
+    // Use lower threshold for initial detection
+    if (prediction.score < MIN_CONFIDENCE) return;
 
-    // Roboflow returns x, y as center coordinates
-    const x = (prediction.x - prediction.width / 2) * scaleX;
-    const y = (prediction.y - prediction.height / 2) * scaleY;
-    const width = prediction.width * scaleX;
-    const height = prediction.height * scaleY;
+    const classLower = prediction.class.toLowerCase();
 
-    // Green for trash items
-    const color = '#10B981';
+    // SKIP ignored classes completely (phones, laptops, cars, etc.)
+    if (IGNORE_CLASSES.includes(classLower)) return;
 
-    // Draw bounding box
+    const [x, y, width, height] = prediction.bbox;
+    const isTrash = COCO_TRASH_CLASSES.includes(classLower);
+
+    // Only draw trash items
+    if (!isTrash) return;
+
+    const trashItem = trashItems.find(t => t.class === prediction.class);
+    const isBoosted = trashItem && confidenceTracker.detections.get(classLower)?.count >= confidenceTracker.BOOST_THRESHOLD;
+
+    // Green color for trash
+    const color = isBoosted ? '#059669' : '#10B981'; // darker green if boosted
+
+    // Draw bounding box (thicker if boosted)
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = isBoosted ? 4 : 2;
     ctx.strokeRect(x, y, width, height);
 
     // Draw label background
-    const label = `${prediction.class} ${Math.round(prediction.confidence * 100)}%`;
+    const boostedScore = trashItem ? trashItem.boostedScore : prediction.score;
+    const boostMarker = isBoosted ? '+' : '';
+    const label = `🗑️ ${prediction.class} ${Math.round(boostedScore * 100)}%${boostMarker}`;
     ctx.font = 'bold 14px Arial';
     const textWidth = ctx.measureText(label).width;
 
@@ -339,8 +582,10 @@ function startRecording() {
   // Reset all detection stats
   state.detectedItems.clear();
   state.framesWithTrash = 0;
+  state.framesWithPerson = 0;
   state.totalFramesAnalyzed = 0;
   state.recordedChunks = [];
+  resetConfidenceTracker();
 
   // Auto-start detection during recording
   if (!state.isDetecting) {
@@ -384,7 +629,7 @@ function startRecording() {
     }
   }, MAX_RECORDING_TIME * 1000);
 
-  showToast('Recording! Show trash items to the camera', 'info');
+  showToast('Recording! Show bottles, cups, or trash to camera', 'info');
 }
 
 function stopRecording() {
@@ -449,20 +694,43 @@ async function analyzeAndSubmit() {
     detectedItems
   });
 
-  // SUCCESS requires trash to be detected in at least 20% of frames
-  const success = trashPercent >= 20 && detectedItems.length > 0;
+  // SUCCESS requires trash to be detected in at least 15% of frames (lowered with confidence boosting)
+  const success = trashPercent >= 15 && detectedItems.length > 0;
 
   if (success) {
     const points = calculatePoints(detectedItems, trashPercent);
 
-    // Award points
+    // Award points locally
     if (window.electronAPI) {
       state.userData = await window.electronAPI.awardPoints({ points: points.points });
     } else {
       state.userData.totalPoints += points.points;
       state.userData.lifetimePoints += points.points;
       state.userData.submissions++;
-      localStorage.setItem('litteryl_userData', JSON.stringify(state.userData));
+      localStorage.setItem('ecoquest_userData', JSON.stringify(state.userData));
+    }
+
+    // Sync to Supabase if logged in
+    if (state.isLoggedIn && window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+      try {
+        // Create submission record (this also updates profile via trigger)
+        await window.EcoQuestAuth.createSubmission(
+          state.authUser.id,
+          points.points,
+          detectedItems,
+          state.userProfile?.area || null,
+          state.userProfile?.country || null
+        );
+
+        // Refresh profile to get updated totals
+        const updatedProfile = await window.EcoQuestAuth.getUserProfile(state.authUser.id);
+        state.userProfile = updatedProfile;
+
+        console.log('Points synced to Supabase:', points.points);
+      } catch (syncError) {
+        console.error('Failed to sync points to Supabase:', syncError);
+        // Points still saved locally, will sync later
+      }
     }
 
     showResults({
@@ -478,9 +746,9 @@ async function analyzeAndSubmit() {
     // FAIL - give specific feedback
     let errorMsg = 'Detection failed: ';
     if (detectedItems.length === 0) {
-      errorMsg += 'No trash detected! Try pointing at bottles, cans, or plastic bags.';
-    } else if (trashPercent < 20) {
-      errorMsg += 'Trash not visible long enough. Keep items in frame longer!';
+      errorMsg += 'No items detected! Try bottles, cups, or food items.';
+    } else if (trashPercent < 15) {
+      errorMsg += 'Items not visible long enough. Keep in frame longer!';
     }
 
     showResults({
@@ -509,22 +777,20 @@ function calculatePoints(items, trashPercent) {
   // High visibility bonus
   if (trashPercent >= 50) {
     points += 30;
-    breakdown.push({ points: 30, reason: 'Great trash visibility' });
+    breakdown.push({ points: 30, reason: 'Great visibility' });
   }
 
   // Multiple items bonus
   if (items.length > 1) {
     const bonus = 15 * (items.length - 1);
     points += bonus;
-    breakdown.push({ points: bonus, reason: `${items.length} different trash types` });
+    breakdown.push({ points: bonus, reason: `${items.length} different items` });
   }
 
-  // Specific item bonuses
-  const hardToFind = ['Cigarette', 'Plastic bag', 'Straw'];
-  const foundHard = items.filter(i => hardToFind.some(h => i.toLowerCase().includes(h.toLowerCase())));
-  if (foundHard.length > 0) {
-    points += 25;
-    breakdown.push({ points: 25, reason: 'Hard-to-find trash bonus' });
+  // Bottle bonus (common trash)
+  if (items.some(i => i.toLowerCase() === 'bottle')) {
+    points += 20;
+    breakdown.push({ points: 20, reason: 'Bottle detected!' });
   }
 
   return { points, breakdown };
@@ -539,7 +805,7 @@ function showResults(result) {
       <div class="result-header">
         <span class="result-icon">🎉</span>
         <h2 class="result-title">Success!</h2>
-        <p class="result-subtitle">Roboflow AI verified your trash pickup</p>
+        <p class="result-subtitle">AI verified your trash pickup</p>
       </div>
 
       <div class="points-earned">
@@ -589,7 +855,7 @@ function showResults(result) {
         <div class="verification-item">
           <span class="icon">🗑️</span>
           <span class="value">${Math.round(result.trashPercent || 0)}%</span>
-          <span class="label">Trash (need 20%+)</span>
+          <span class="label">Trash (need 15%+)</span>
         </div>
         <div class="verification-item">
           <span class="icon">🏷️</span>
@@ -599,20 +865,19 @@ function showResults(result) {
       </div>
 
       <div style="background: var(--bg-card); border-radius: var(--border-radius); padding: 14px; margin-top: 16px;">
-        <h4 style="margin-bottom: 10px; font-size: 0.9rem;">Detectable trash types:</h4>
+        <h4 style="margin-bottom: 10px; font-size: 0.9rem;">Detectable items (show these to camera):</h4>
         <ul style="list-style-position: inside; color: var(--text-secondary); font-size: 0.85rem;">
-          <li>Plastic bottles & containers</li>
-          <li>Aluminum cans</li>
-          <li>Plastic bags</li>
-          <li>Paper & cardboard</li>
-          <li>Cigarette butts</li>
-          <li>Food wrappers</li>
-          <li>Cups & straws</li>
+          <li>Bottles (plastic, glass, wine)</li>
+          <li>Cups and glasses</li>
+          <li>Bowls and containers</li>
+          <li>Food items (banana, apple, etc.)</li>
+          <li>Utensils (fork, knife, spoon)</li>
+          <li>Bags, backpacks, suitcases</li>
         </ul>
       </div>
     `;
 
-    showToast('No trash detected. Try again!', 'error');
+    showToast('No items detected. Try again!', 'error');
   }
 }
 
@@ -669,12 +934,20 @@ async function loadRewards() {
     rewards = await window.electronAPI.getRewards();
   } else {
     rewards = [
-      { id: 'amazon_5', name: 'Amazon', value: '$5', pointsCost: 500, image: '🛒' },
-      { id: 'starbucks_5', name: 'Starbucks', value: '$5', pointsCost: 500, image: '☕' },
-      { id: 'donation_trees', name: 'Plant Trees', value: '5 Trees', pointsCost: 300, image: '🌳' },
-      { id: 'donation_ocean', name: 'Ocean Cleanup', value: '1 lb', pointsCost: 250, image: '🌊' }
+      { id: 'amazon_5', name: 'Amazon', value: '$5', pointsCost: 500, category: 'gift_card', image: '🛒' },
+      { id: 'amazon_10', name: 'Amazon', value: '$10', pointsCost: 950, category: 'gift_card', image: '🛒' },
+      { id: 'starbucks_5', name: 'Starbucks', value: '$5', pointsCost: 500, category: 'gift_card', image: '☕' },
+      { id: 'target_10', name: 'Target', value: '$10', pointsCost: 950, category: 'gift_card', image: '🎯' },
+      { id: 'donation_trees', name: 'Plant Trees', value: '5 Trees', pointsCost: 300, category: 'donation', image: '🌳' },
+      { id: 'donation_ocean', name: 'Ocean Cleanup', value: '1 lb', pointsCost: 250, category: 'donation', image: '🌊' }
     ];
   }
+
+  // Filter by category if set
+  if (state.rewardCategory && state.rewardCategory !== 'all') {
+    rewards = rewards.filter(r => r.category === state.rewardCategory);
+  }
+
   renderRewards(rewards);
 }
 
@@ -738,7 +1011,7 @@ window.redeemReward = async function(rewardId, pointsCost) {
       result = { success: false, error: 'Not enough points' };
     } else {
       state.userData.totalPoints -= pointsCost;
-      localStorage.setItem('litteryl_userData', JSON.stringify(state.userData));
+      localStorage.setItem('ecoquest_userData', JSON.stringify(state.userData));
       result = { success: true, code: generateCode(), remainingPoints: state.userData.totalPoints };
     }
   }
@@ -797,6 +1070,7 @@ function resetToCamera() {
   showSection('camera');
   state.recordedChunks = [];
   state.detectedItems.clear();
+  resetConfidenceTracker();
   if (!state.stream) startCamera();
 }
 
@@ -827,6 +1101,1085 @@ function showToast(message, type = 'info') {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+// ========================================
+// Navigation & Tabs
+// ========================================
+
+function setupTabNavigation() {
+  // Hamburger menu toggle
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const navTabs = document.getElementById('navTabs');
+
+  if (hamburgerBtn && navTabs) {
+    hamburgerBtn.addEventListener('click', () => {
+      hamburgerBtn.classList.toggle('active');
+      navTabs.classList.toggle('open');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-container')) {
+        hamburgerBtn.classList.remove('active');
+        navTabs.classList.remove('open');
+      }
+    });
+  }
+
+  // Tab navigation
+  const navTabBtns = document.querySelectorAll('.nav-tab');
+  navTabBtns.forEach(tab => {
+    tab.addEventListener('click', () => {
+      switchTab(tab.dataset.tab);
+      // Close hamburger menu after selecting
+      if (hamburgerBtn && navTabs) {
+        hamburgerBtn.classList.remove('active');
+        navTabs.classList.remove('open');
+      }
+    });
+  });
+
+  // Leaderboard toggle
+  const toggleBtns = document.querySelectorAll('.toggle-btn');
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchLeaderboard(btn.dataset.leaderboard));
+  });
+
+  // Category buttons
+  const categoryBtns = document.querySelectorAll('.category-btn');
+  categoryBtns.forEach(btn => {
+    btn.addEventListener('click', () => filterRewards(btn.dataset.category));
+  });
+}
+
+function switchTab(tabName) {
+  state.currentTab = tabName;
+
+  // Update nav tabs
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === tabName);
+  });
+
+  // Update tab content
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  document.getElementById(`${tabName}Tab`).classList.add('active');
+
+  // Load data for specific tabs
+  if (tabName === 'leaderboard') {
+    loadLeaderboardData();
+  } else if (tabName === 'redeem') {
+    updateRedeemSection();
+  } else if (tabName === 'profile') {
+    updateProfileSection();
+  }
+}
+
+function switchLeaderboard(type) {
+  state.currentLeaderboard = type;
+
+  // Update toggle buttons
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.leaderboard === type);
+  });
+
+  // Update leaderboard content
+  document.querySelectorAll('.leaderboard-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  document.getElementById(`${type}Leaderboard`).classList.add('active');
+
+  loadLeaderboardData();
+}
+
+function filterRewards(category) {
+  state.rewardCategory = category;
+
+  // Update category buttons
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.category === category);
+  });
+
+  loadRewards();
+}
+
+// ========================================
+// Authentication
+// ========================================
+
+function setupAuthListeners() {
+  // Auth banner button
+  const authBannerBtn = document.getElementById('authBannerBtn');
+  if (authBannerBtn) {
+    authBannerBtn.addEventListener('click', () => openAuthModal('signin'));
+  }
+
+  // Header auth button
+  const authBtn = document.getElementById('authBtn');
+  if (authBtn) {
+    authBtn.addEventListener('click', () => {
+      if (state.isLoggedIn) {
+        switchTab('profile');
+      } else {
+        openAuthModal('signin');
+      }
+    });
+  }
+
+  // Profile buttons
+  const showSignUpBtn = document.getElementById('showSignUpBtn');
+  const showSignInBtn = document.getElementById('showSignInBtn');
+  if (showSignUpBtn) showSignUpBtn.addEventListener('click', () => openAuthModal('signup'));
+  if (showSignInBtn) showSignInBtn.addEventListener('click', () => openAuthModal('signin'));
+
+  // Leaderboard sign in buttons
+  const leaderboardSignInBtn = document.getElementById('leaderboardSignInBtn');
+  const globalSignInBtn = document.getElementById('globalSignInBtn');
+  if (leaderboardSignInBtn) leaderboardSignInBtn.addEventListener('click', () => openAuthModal('signin'));
+  if (globalSignInBtn) globalSignInBtn.addEventListener('click', () => openAuthModal('signin'));
+
+  // Modal controls
+  const authModalClose = document.getElementById('authModalClose');
+  if (authModalClose) {
+    authModalClose.addEventListener('click', closeAuthModal);
+  }
+
+  const authModal = document.getElementById('authModal');
+  if (authModal) {
+    authModal.addEventListener('click', (e) => {
+      if (e.target === authModal) closeAuthModal();
+    });
+  }
+
+  // Form switches
+  const switchToSignUp = document.getElementById('switchToSignUp');
+  const switchToSignIn = document.getElementById('switchToSignIn');
+  const backToSignInBtn = document.getElementById('backToSignInBtn');
+
+  if (switchToSignUp) switchToSignUp.addEventListener('click', () => showAuthForm('signup'));
+  if (switchToSignIn) switchToSignIn.addEventListener('click', () => showAuthForm('signin'));
+  if (backToSignInBtn) backToSignInBtn.addEventListener('click', () => showAuthForm('signin'));
+
+  // Form submissions
+  const signInSubmitBtn = document.getElementById('signInSubmitBtn');
+  const signUpSubmitBtn = document.getElementById('signUpSubmitBtn');
+
+  if (signInSubmitBtn) signInSubmitBtn.addEventListener('click', handleSignIn);
+  if (signUpSubmitBtn) signUpSubmitBtn.addEventListener('click', handleSignUp);
+
+  // Sign out
+  const signOutBtn = document.getElementById('signOutBtn');
+  if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
+
+  // Area modal
+  const areaModalClose = document.getElementById('areaModalClose');
+  const setAreaBtn = document.getElementById('setAreaBtn');
+  const changeAreaBtn = document.getElementById('changeAreaBtn');
+  const saveAreaBtn = document.getElementById('saveAreaBtn');
+
+  if (areaModalClose) areaModalClose.addEventListener('click', closeAreaModal);
+  if (setAreaBtn) setAreaBtn.addEventListener('click', openAreaModal);
+  if (changeAreaBtn) changeAreaBtn.addEventListener('click', openAreaModal);
+  if (saveAreaBtn) saveAreaBtn.addEventListener('click', handleSaveArea);
+
+  const areaModal = document.getElementById('areaModal');
+  if (areaModal) {
+    areaModal.addEventListener('click', (e) => {
+      if (e.target === areaModal) closeAreaModal();
+    });
+  }
+}
+
+function openAuthModal(type = 'signin') {
+  const authModal = document.getElementById('authModal');
+  authModal.classList.remove('hidden');
+  showAuthForm(type);
+}
+
+function closeAuthModal() {
+  const authModal = document.getElementById('authModal');
+  authModal.classList.add('hidden');
+}
+
+function showAuthForm(type) {
+  const signInForm = document.getElementById('signInForm');
+  const signUpForm = document.getElementById('signUpForm');
+  const verificationForm = document.getElementById('verificationForm');
+
+  signInForm.classList.add('hidden');
+  signUpForm.classList.add('hidden');
+  verificationForm.classList.add('hidden');
+
+  if (type === 'signin') {
+    signInForm.classList.remove('hidden');
+  } else if (type === 'signup') {
+    signUpForm.classList.remove('hidden');
+  } else if (type === 'verification') {
+    verificationForm.classList.remove('hidden');
+  }
+}
+
+async function handleSignIn() {
+  const email = document.getElementById('signInEmail').value;
+  const password = document.getElementById('signInPassword').value;
+
+  if (!email || !password) {
+    showToast('Please fill in all fields', 'warning');
+    return;
+  }
+
+  // Check if Supabase is configured
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      const data = await window.EcoQuestAuth.signIn(email, password);
+      state.authUser = data.user;
+      state.isLoggedIn = true;
+
+      // Try to get profile, create one if it doesn't exist
+      let profile = null;
+      try {
+        profile = await window.EcoQuestAuth.getUserProfile(data.user.id);
+      } catch (profileError) {
+        console.log('Profile not found, creating one...');
+        // Profile doesn't exist, it will be created on first use
+        profile = {
+          id: data.user.id,
+          username: data.user.email.split('@')[0],
+          display_name: data.user.user_metadata?.display_name || data.user.email.split('@')[0],
+          total_points: 0,
+          submissions: 0,
+          current_streak: 0,
+          area: null,
+          country: null,
+          friend_code: null
+        };
+      }
+      state.userProfile = profile;
+
+      closeAuthModal();
+      updateAuthUI();
+      showToast('Welcome back!', 'success');
+    } catch (error) {
+      showToast(error.message || 'Sign in failed', 'error');
+    }
+  } else {
+    // Demo mode - simulate login
+    state.isLoggedIn = true;
+    state.authUser = { id: 'demo_user', email };
+    state.userProfile = {
+      username: email.split('@')[0],
+      display_name: email.split('@')[0],
+      total_points: state.userData?.totalPoints || 0,
+      submissions: state.userData?.submissions || 0,
+      current_streak: state.userData?.currentStreak || 0,
+      area: null,
+      country: null
+    };
+
+    closeAuthModal();
+    updateAuthUI();
+    showToast('Demo mode: Signed in!', 'success');
+  }
+}
+
+async function handleSignUp() {
+  const username = document.getElementById('signUpUsername').value;
+  const email = document.getElementById('signUpEmail').value;
+  const password = document.getElementById('signUpPassword').value;
+
+  if (!username || !email || !password) {
+    showToast('Please fill in all fields', 'warning');
+    return;
+  }
+
+  if (password.length < 6) {
+    showToast('Password must be at least 6 characters', 'warning');
+    return;
+  }
+
+  // Check if Supabase is configured
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      await window.EcoQuestAuth.signUp(email, password, username, username);
+      showAuthForm('verification');
+      showToast('Check your email for verification!', 'success');
+    } catch (error) {
+      showToast(error.message || 'Sign up failed', 'error');
+    }
+  } else {
+    // Demo mode
+    state.isLoggedIn = true;
+    state.authUser = { id: 'demo_user', email };
+    state.userProfile = {
+      username,
+      display_name: username,
+      total_points: state.userData?.totalPoints || 0,
+      submissions: state.userData?.submissions || 0,
+      current_streak: state.userData?.currentStreak || 0,
+      area: null,
+      country: null
+    };
+
+    closeAuthModal();
+    updateAuthUI();
+    showToast('Demo mode: Account created!', 'success');
+  }
+}
+
+async function handleSignOut() {
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      await window.EcoQuestAuth.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  }
+
+  state.isLoggedIn = false;
+  state.authUser = null;
+  state.userProfile = null;
+
+  updateAuthUI();
+  showToast('Signed out', 'success');
+  switchTab('home');
+}
+
+function updateAuthUI() {
+  const authBanner = document.getElementById('authBanner');
+  const authBtn = document.getElementById('authBtn');
+  const profileLoggedOut = document.getElementById('profileLoggedOut');
+  const profileLoggedIn = document.getElementById('profileLoggedIn');
+
+  if (state.isLoggedIn) {
+    if (authBanner) authBanner.classList.add('hidden');
+    if (authBtn) authBtn.classList.add('logged-in');
+    if (profileLoggedOut) profileLoggedOut.classList.add('hidden');
+    if (profileLoggedIn) profileLoggedIn.classList.remove('hidden');
+
+    updateProfileSection();
+  } else {
+    if (authBanner) authBanner.classList.remove('hidden');
+    if (authBtn) authBtn.classList.remove('logged-in');
+    if (profileLoggedOut) profileLoggedOut.classList.remove('hidden');
+    if (profileLoggedIn) profileLoggedIn.classList.add('hidden');
+  }
+}
+
+// ========================================
+// Profile Section
+// ========================================
+
+function updateProfileSection() {
+  if (!state.isLoggedIn || !state.userProfile) return;
+
+  const profile = state.userProfile;
+
+  // Update profile info
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const profileArea = document.getElementById('profileArea');
+
+  if (profileName) profileName.textContent = profile.display_name || profile.username;
+  if (profileEmail && state.authUser) profileEmail.textContent = state.authUser.email;
+  if (profileArea) {
+    profileArea.textContent = profile.area
+      ? `${profile.area}${profile.country ? ', ' + profile.country : ''}`
+      : 'Not set';
+  }
+
+  // Update profile stats
+  const profileTotalPoints = document.getElementById('profileTotalPoints');
+  const profileSubmissions = document.getElementById('profileSubmissions');
+  const profileStreak = document.getElementById('profileStreak');
+
+  if (profileTotalPoints) profileTotalPoints.textContent = profile.total_points || state.userData?.totalPoints || 0;
+  if (profileSubmissions) profileSubmissions.textContent = profile.submissions || state.userData?.submissions || 0;
+  if (profileStreak) profileStreak.textContent = profile.current_streak || state.userData?.currentStreak || 0;
+}
+
+// ========================================
+// Area Modal
+// ========================================
+
+function openAreaModal() {
+  const areaModal = document.getElementById('areaModal');
+  areaModal.classList.remove('hidden');
+
+  // Pre-fill if area exists
+  if (state.userProfile?.area) {
+    document.getElementById('areaInput').value = state.userProfile.area;
+    document.getElementById('countryInput').value = state.userProfile.country || '';
+  }
+}
+
+function closeAreaModal() {
+  const areaModal = document.getElementById('areaModal');
+  areaModal.classList.add('hidden');
+}
+
+async function handleSaveArea() {
+  const area = document.getElementById('areaInput').value.trim();
+  const country = document.getElementById('countryInput').value.trim();
+
+  if (!area) {
+    showToast('Please enter your city/region', 'warning');
+    return;
+  }
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured() && state.authUser) {
+    try {
+      await window.EcoQuestAuth.updateUserArea(state.authUser.id, area, country);
+      state.userProfile.area = area;
+      state.userProfile.country = country;
+    } catch (error) {
+      showToast('Failed to save area', 'error');
+      return;
+    }
+  } else {
+    // Demo mode
+    state.userProfile.area = area;
+    state.userProfile.country = country;
+  }
+
+  closeAreaModal();
+  updateProfileSection();
+  updateAreaDisplay();
+  showToast('Area updated!', 'success');
+
+  // Refresh leaderboard if on that tab
+  if (state.currentTab === 'leaderboard') {
+    loadLeaderboardData();
+  }
+}
+
+function updateAreaDisplay() {
+  const currentAreaName = document.getElementById('currentAreaName');
+  if (currentAreaName && state.userProfile?.area) {
+    currentAreaName.textContent = state.userProfile.area;
+  } else if (currentAreaName) {
+    currentAreaName.textContent = 'Set your area';
+  }
+}
+
+// ========================================
+// Leaderboard
+// ========================================
+
+async function loadLeaderboardData() {
+  if (!state.isLoggedIn) return;
+
+  if (state.currentLeaderboard === 'area') {
+    await loadAreaLeaderboard();
+  } else if (state.currentLeaderboard === 'global') {
+    await loadGlobalLeaderboard();
+  }
+}
+
+async function loadAreaLeaderboard() {
+  const listEl = document.getElementById('areaLeaderboardList');
+  const yourRankCard = document.getElementById('yourAreaRank');
+
+  if (!state.userProfile?.area) {
+    listEl.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">📍</span>
+        <p>Set your area to see local rankings</p>
+        <button class="btn btn-primary" onclick="openAreaModal()">Set Area</button>
+      </div>
+    `;
+    yourRankCard.querySelector('.rank-number').textContent = '#-';
+    yourRankCard.querySelector('.rank-points').textContent = '0 pts';
+    return;
+  }
+
+  // Update area name display
+  updateAreaDisplay();
+
+  let leaderboardData = [];
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      leaderboardData = await window.EcoQuestAuth.getAreaLeaderboard(state.userProfile.area);
+    } catch (error) {
+      console.error('Failed to load area leaderboard:', error);
+    }
+  } else {
+    // Demo data
+    leaderboardData = generateDemoLeaderboard(state.userProfile.area);
+  }
+
+  renderLeaderboard(listEl, leaderboardData, yourRankCard, 'area');
+}
+
+async function loadGlobalLeaderboard() {
+  const listEl = document.getElementById('globalLeaderboardList');
+  const yourRankCard = document.getElementById('yourGlobalRank');
+
+  let leaderboardData = [];
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      leaderboardData = await window.EcoQuestAuth.getGlobalLeaderboard();
+    } catch (error) {
+      console.error('Failed to load global leaderboard:', error);
+    }
+  } else {
+    // Demo data
+    leaderboardData = generateDemoLeaderboard('Global');
+  }
+
+  renderLeaderboard(listEl, leaderboardData, yourRankCard, 'global');
+}
+
+function generateDemoLeaderboard(area) {
+  const names = ['EcoHero', 'GreenWarrior', 'TrashBuster', 'PlanetSaver', 'CleanChamp', 'EcoNinja', 'RecycleKing', 'GreenQueen'];
+  const data = names.map((name, i) => ({
+    id: `demo_${i}`,
+    username: name,
+    display_name: name,
+    total_points: Math.floor(Math.random() * 2000) + 500,
+    submissions: Math.floor(Math.random() * 50) + 5,
+    current_streak: Math.floor(Math.random() * 10),
+    area: area
+  }));
+
+  // Add current user
+  if (state.userProfile) {
+    data.push({
+      id: state.authUser?.id || 'current_user',
+      username: state.userProfile.username,
+      display_name: state.userProfile.display_name,
+      total_points: state.userData?.totalPoints || 0,
+      submissions: state.userData?.submissions || 0,
+      current_streak: state.userData?.currentStreak || 0,
+      area: state.userProfile.area
+    });
+  }
+
+  // Sort by points
+  data.sort((a, b) => b.total_points - a.total_points);
+
+  return data;
+}
+
+function renderLeaderboard(listEl, data, yourRankCard, type) {
+  if (data.length === 0) {
+    listEl.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">📊</span>
+        <p>No data yet. Be the first!</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Find current user's rank
+  const currentUserId = state.authUser?.id || 'current_user';
+  const userIndex = data.findIndex(u => u.id === currentUserId);
+  const userRank = userIndex !== -1 ? userIndex + 1 : '-';
+  const userPoints = userIndex !== -1 ? data[userIndex].total_points : 0;
+
+  // Update your rank card
+  yourRankCard.querySelector('.rank-number').textContent = `#${userRank}`;
+  yourRankCard.querySelector('.rank-points').textContent = `${userPoints} pts`;
+
+  // Render list (top 10)
+  const topUsers = data.slice(0, 10);
+  listEl.innerHTML = topUsers.map((user, index) => {
+    const rank = index + 1;
+    const isCurrentUser = user.id === currentUserId;
+    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+
+    return `
+      <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+        <div class="leaderboard-rank ${rankClass}">${rank}</div>
+        <div class="leaderboard-user">
+          <span class="leaderboard-username">${user.display_name || user.username}${isCurrentUser ? ' (You)' : ''}</span>
+          <span class="leaderboard-stats">${user.submissions} cleanups • ${user.current_streak} day streak</span>
+        </div>
+        <div class="leaderboard-points">${user.total_points}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ========================================
+// Redeem Section
+// ========================================
+
+function updateRedeemSection() {
+  const balanceEl = document.getElementById('redeemPointsBalance');
+  if (balanceEl) {
+    balanceEl.textContent = state.userData?.totalPoints || 0;
+  }
+
+  loadRedemptionHistory();
+}
+
+function loadRedemptionHistory() {
+  const historyList = document.getElementById('redemptionHistoryList');
+  if (!historyList) return;
+
+  const history = state.userData?.redemptionHistory || [];
+
+  if (history.length === 0) {
+    historyList.innerHTML = `
+      <div class="history-empty">
+        <span>No redemptions yet</span>
+      </div>
+    `;
+    return;
+  }
+
+  historyList.innerHTML = history.slice(0, 5).map(item => {
+    const date = new Date(item.redeemedAt).toLocaleDateString();
+    return `
+      <div class="history-item">
+        <span class="history-icon">🎁</span>
+        <div class="history-info">
+          <span class="history-name">${item.rewardId}</span>
+          <span class="history-date">${date}</span>
+        </div>
+        <span class="history-code">${item.code}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Make area modal function global
+window.openAreaModal = openAreaModal;
+
+// ========================================
+// Friends System
+// ========================================
+
+let foundFriend = null;
+
+function setupFriendsListeners() {
+  // Add Friend button
+  const addFriendBtn = document.getElementById('addFriendBtn');
+  const addFirstFriendBtn = document.getElementById('addFirstFriendBtn');
+  if (addFriendBtn) addFriendBtn.addEventListener('click', openAddFriendModal);
+  if (addFirstFriendBtn) addFirstFriendBtn.addEventListener('click', openAddFriendModal);
+
+  // Copy friend code buttons
+  const copyFriendCodeBtn = document.getElementById('copyFriendCodeBtn');
+  const copyProfileFriendCodeBtn = document.getElementById('copyProfileFriendCodeBtn');
+  if (copyFriendCodeBtn) copyFriendCodeBtn.addEventListener('click', copyFriendCode);
+  if (copyProfileFriendCodeBtn) copyProfileFriendCodeBtn.addEventListener('click', copyFriendCode);
+
+  // View requests
+  const viewRequestsBtn = document.getElementById('viewRequestsBtn');
+  if (viewRequestsBtn) viewRequestsBtn.addEventListener('click', openFriendRequestsModal);
+
+  // Add Friend Modal
+  const addFriendModalClose = document.getElementById('addFriendModalClose');
+  const addFriendModal = document.getElementById('addFriendModal');
+  if (addFriendModalClose) addFriendModalClose.addEventListener('click', closeAddFriendModal);
+  if (addFriendModal) {
+    addFriendModal.addEventListener('click', (e) => {
+      if (e.target === addFriendModal) closeAddFriendModal();
+    });
+  }
+
+  // Friend code input
+  const friendCodeInput = document.getElementById('friendCodeInput');
+  if (friendCodeInput) {
+    friendCodeInput.addEventListener('input', handleFriendCodeInput);
+  }
+
+  // Send friend request
+  const sendFriendRequestBtn = document.getElementById('sendFriendRequestBtn');
+  if (sendFriendRequestBtn) sendFriendRequestBtn.addEventListener('click', handleSendFriendRequest);
+
+  // Friend Requests Modal
+  const friendRequestsModalClose = document.getElementById('friendRequestsModalClose');
+  const friendRequestsModal = document.getElementById('friendRequestsModal');
+  if (friendRequestsModalClose) friendRequestsModalClose.addEventListener('click', closeFriendRequestsModal);
+  if (friendRequestsModal) {
+    friendRequestsModal.addEventListener('click', (e) => {
+      if (e.target === friendRequestsModal) closeFriendRequestsModal();
+    });
+  }
+
+  // Request tabs
+  const requestsTabs = document.querySelectorAll('.requests-tab');
+  requestsTabs.forEach(tab => {
+    tab.addEventListener('click', () => switchRequestsTab(tab.dataset.requests));
+  });
+}
+
+function openAddFriendModal() {
+  if (!state.isLoggedIn) {
+    openAuthModal('signin');
+    return;
+  }
+
+  const addFriendModal = document.getElementById('addFriendModal');
+  addFriendModal.classList.remove('hidden');
+
+  // Reset state
+  document.getElementById('friendCodeInput').value = '';
+  document.getElementById('friendSearchResult').classList.add('hidden');
+  foundFriend = null;
+
+  // Update share code
+  const shareMyCode = document.getElementById('shareMyCode');
+  if (shareMyCode && state.userProfile?.friend_code) {
+    shareMyCode.textContent = state.userProfile.friend_code;
+  }
+}
+
+function closeAddFriendModal() {
+  const addFriendModal = document.getElementById('addFriendModal');
+  addFriendModal.classList.add('hidden');
+}
+
+async function handleFriendCodeInput(e) {
+  const code = e.target.value.toUpperCase().trim();
+  const searchResult = document.getElementById('friendSearchResult');
+
+  if (code.length < 8) {
+    searchResult.classList.add('hidden');
+    foundFriend = null;
+    return;
+  }
+
+  // Search for user
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      const user = await window.EcoQuestAuth.getUserByFriendCode(code);
+      if (user && user.id !== state.authUser?.id) {
+        foundFriend = user;
+        document.getElementById('friendPreviewName').textContent = user.display_name || user.username;
+        document.getElementById('friendPreviewPoints').textContent = `${user.total_points} pts`;
+        searchResult.classList.remove('hidden');
+      } else if (user && user.id === state.authUser?.id) {
+        showToast('That\'s your own code!', 'warning');
+        searchResult.classList.add('hidden');
+        foundFriend = null;
+      } else {
+        searchResult.classList.add('hidden');
+        foundFriend = null;
+      }
+    } catch (error) {
+      searchResult.classList.add('hidden');
+      foundFriend = null;
+    }
+  } else {
+    // Demo mode
+    foundFriend = {
+      id: 'demo_friend',
+      username: 'DemoFriend',
+      display_name: 'Demo Friend',
+      total_points: Math.floor(Math.random() * 1000)
+    };
+    document.getElementById('friendPreviewName').textContent = foundFriend.display_name;
+    document.getElementById('friendPreviewPoints').textContent = `${foundFriend.total_points} pts`;
+    searchResult.classList.remove('hidden');
+  }
+}
+
+async function handleSendFriendRequest() {
+  if (!foundFriend) {
+    showToast('Enter a valid friend code first', 'warning');
+    return;
+  }
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      await window.EcoQuestAuth.sendFriendRequest(state.authUser.id, foundFriend.id);
+      showToast('Friend request sent!', 'success');
+      closeAddFriendModal();
+    } catch (error) {
+      showToast(error.message || 'Failed to send request', 'error');
+    }
+  } else {
+    // Demo mode
+    showToast('Friend request sent! (Demo)', 'success');
+    closeAddFriendModal();
+  }
+}
+
+function copyFriendCode() {
+  const code = state.userProfile?.friend_code || 'DEMO1234';
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Friend code copied!', 'success');
+  }).catch(() => {
+    showToast('Failed to copy', 'error');
+  });
+}
+
+function openFriendRequestsModal() {
+  const friendRequestsModal = document.getElementById('friendRequestsModal');
+  friendRequestsModal.classList.remove('hidden');
+  loadFriendRequests();
+}
+
+function closeFriendRequestsModal() {
+  const friendRequestsModal = document.getElementById('friendRequestsModal');
+  friendRequestsModal.classList.add('hidden');
+}
+
+function switchRequestsTab(tab) {
+  // Update tabs
+  document.querySelectorAll('.requests-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.requests === tab);
+  });
+
+  // Update lists
+  document.getElementById('receivedRequestsList').classList.toggle('hidden', tab !== 'received');
+  document.getElementById('sentRequestsList').classList.toggle('hidden', tab !== 'sent');
+}
+
+async function loadFriendRequests() {
+  if (!state.isLoggedIn) return;
+
+  const receivedList = document.getElementById('receivedRequestsList');
+  const sentList = document.getElementById('sentRequestsList');
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      // Load received requests
+      const received = await window.EcoQuestAuth.getPendingFriendRequests(state.authUser.id);
+      renderReceivedRequests(received, receivedList);
+
+      // Load sent requests
+      const sent = await window.EcoQuestAuth.getSentFriendRequests(state.authUser.id);
+      renderSentRequests(sent, sentList);
+    } catch (error) {
+      console.error('Error loading friend requests:', error);
+    }
+  } else {
+    // Demo mode
+    receivedList.innerHTML = '<div class="requests-empty"><span>No pending requests</span></div>';
+    sentList.innerHTML = '<div class="requests-empty"><span>No sent requests</span></div>';
+  }
+}
+
+function renderReceivedRequests(requests, container) {
+  if (!requests || requests.length === 0) {
+    container.innerHTML = '<div class="requests-empty"><span>No pending requests</span></div>';
+    return;
+  }
+
+  container.innerHTML = requests.map(req => {
+    const profile = req.profiles;
+    return `
+      <div class="request-item" data-id="${req.id}">
+        <div class="request-avatar">👤</div>
+        <div class="request-info">
+          <span class="request-name">${profile.display_name || profile.username}</span>
+          <span class="request-points">${profile.total_points} pts</span>
+        </div>
+        <div class="request-actions">
+          <button class="btn btn-accept" onclick="acceptRequest('${req.id}')">Accept</button>
+          <button class="btn btn-reject" onclick="rejectRequest('${req.id}')">Reject</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSentRequests(requests, container) {
+  if (!requests || requests.length === 0) {
+    container.innerHTML = '<div class="requests-empty"><span>No sent requests</span></div>';
+    return;
+  }
+
+  container.innerHTML = requests.map(req => {
+    const profile = req.profiles;
+    return `
+      <div class="request-item" data-id="${req.id}">
+        <div class="request-avatar">👤</div>
+        <div class="request-info">
+          <span class="request-name">${profile.display_name || profile.username}</span>
+          <span class="request-points">${profile.total_points} pts</span>
+        </div>
+        <div class="request-actions">
+          <span style="color: var(--text-muted); font-size: 0.85rem;">Pending</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function acceptRequest(requestId) {
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      await window.EcoQuestAuth.acceptFriendRequest(requestId);
+      showToast('Friend added!', 'success');
+      loadFriendRequests();
+      updatePendingRequestsBadge();
+      if (state.currentLeaderboard === 'friends') {
+        loadFriendsLeaderboard();
+      }
+    } catch (error) {
+      showToast('Failed to accept request', 'error');
+    }
+  }
+}
+
+async function rejectRequest(requestId) {
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      await window.EcoQuestAuth.rejectFriendRequest(requestId);
+      showToast('Request declined', 'success');
+      loadFriendRequests();
+      updatePendingRequestsBadge();
+    } catch (error) {
+      showToast('Failed to decline request', 'error');
+    }
+  }
+}
+
+async function loadFriendsLeaderboard() {
+  if (!state.isLoggedIn) {
+    const listEl = document.getElementById('friendsLeaderboardList');
+    listEl.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">🔐</span>
+        <p>Sign in to see friends</p>
+        <button class="btn btn-primary" onclick="openAuthModal('signin')">Sign In</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Update friend code displays
+  updateFriendCodeDisplays();
+
+  const listEl = document.getElementById('friendsLeaderboardList');
+  const yourRankCard = document.getElementById('yourFriendsRank');
+  const statsCard = document.getElementById('friendsStatsCard');
+  const emptyState = document.getElementById('friendsEmptyState');
+
+  let leaderboardData = [];
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      leaderboardData = await window.EcoQuestAuth.getFriendsLeaderboard(state.authUser.id);
+
+      // Update pending requests badge
+      updatePendingRequestsBadge();
+    } catch (error) {
+      console.error('Failed to load friends leaderboard:', error);
+    }
+  } else {
+    // Demo data - just the user
+    leaderboardData = [{
+      id: state.authUser?.id || 'current_user',
+      username: state.userProfile?.username || 'You',
+      display_name: state.userProfile?.display_name || 'You',
+      total_points: state.userData?.totalPoints || 0,
+      submissions: state.userData?.submissions || 0,
+      current_streak: state.userData?.currentStreak || 0
+    }];
+  }
+
+  // Check if user has friends (more than just themselves)
+  if (leaderboardData.length <= 1) {
+    // Show empty state
+    listEl.innerHTML = `
+      <div class="leaderboard-empty" id="friendsEmptyState">
+        <span class="empty-icon">👥</span>
+        <p>No friends yet</p>
+        <span class="empty-desc">Add friends using their friend code to compete!</span>
+        <button class="btn btn-primary" onclick="openAddFriendModal()">Add Your First Friend</button>
+      </div>
+    `;
+    statsCard.classList.add('hidden');
+    yourRankCard.querySelector('.rank-number').textContent = '#1';
+    yourRankCard.querySelector('.rank-points').textContent = `${state.userData?.totalPoints || 0} pts`;
+    return;
+  }
+
+  // Render leaderboard
+  statsCard.classList.remove('hidden');
+  renderLeaderboard(listEl, leaderboardData, yourRankCard, 'friends');
+
+  // Update stats
+  const currentUserId = state.authUser?.id || 'current_user';
+  const userIndex = leaderboardData.findIndex(u => u.id === currentUserId);
+
+  document.getElementById('totalFriendsCount').textContent = leaderboardData.length - 1; // Exclude self
+  document.getElementById('friendsAhead').textContent = userIndex;
+  document.getElementById('friendsBehind').textContent = leaderboardData.length - userIndex - 1;
+}
+
+function updateFriendCodeDisplays() {
+  const code = state.userProfile?.friend_code || 'DEMO1234';
+
+  const myFriendCode = document.getElementById('myFriendCode');
+  const profileFriendCode = document.getElementById('profileFriendCode');
+  const shareMyCode = document.getElementById('shareMyCode');
+
+  if (myFriendCode) myFriendCode.textContent = code;
+  if (profileFriendCode) profileFriendCode.textContent = code;
+  if (shareMyCode) shareMyCode.textContent = code;
+}
+
+async function updatePendingRequestsBadge() {
+  const banner = document.getElementById('pendingRequestsBanner');
+  const countEl = document.getElementById('pendingCount');
+
+  if (!state.isLoggedIn || !banner) return;
+
+  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    try {
+      const count = await window.EcoQuestAuth.getPendingRequestCount(state.authUser.id);
+      if (count > 0) {
+        countEl.textContent = count;
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    } catch (error) {
+      banner.classList.add('hidden');
+    }
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+// Make functions global
+window.openAddFriendModal = openAddFriendModal;
+window.acceptRequest = acceptRequest;
+window.rejectRequest = rejectRequest;
+
+// Update loadLeaderboardData to include friends
+const originalLoadLeaderboardData = loadLeaderboardData;
+async function loadLeaderboardDataUpdated() {
+  if (!state.isLoggedIn) return;
+
+  if (state.currentLeaderboard === 'area') {
+    await loadAreaLeaderboard();
+  } else if (state.currentLeaderboard === 'global') {
+    await loadGlobalLeaderboard();
+  } else if (state.currentLeaderboard === 'friends') {
+    await loadFriendsLeaderboard();
+  }
+}
+
+// Override the original function
+loadLeaderboardData = loadLeaderboardDataUpdated;
+
+// Update init to include friends listeners
+const originalSetupAuthListeners = setupAuthListeners;
+function setupAuthListenersUpdated() {
+  originalSetupAuthListeners();
+  setupFriendsListeners();
+}
+setupAuthListeners = setupAuthListenersUpdated;
+
+// Update profile section to show friend code
+const originalUpdateProfileSection = updateProfileSection;
+function updateProfileSectionUpdated() {
+  originalUpdateProfileSection();
+  updateFriendCodeDisplays();
+}
+updateProfileSection = updateProfileSectionUpdated;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', init);

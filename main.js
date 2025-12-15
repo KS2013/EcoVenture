@@ -40,9 +40,14 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     frame: true,
-    backgroundColor: '#0F172A',
+    autoHideMenuBar: true,
+    menuBarVisible: false,
+    backgroundColor: '#0A0F1C',
     icon: path.join(__dirname, 'assets', 'icon.png')
   });
+
+  // Remove menu bar completely
+  mainWindow.setMenu(null);
 
   mainWindow.loadFile(path.join(__dirname, 'app', 'index.html'));
 

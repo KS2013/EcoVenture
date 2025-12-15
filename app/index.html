@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://nominatim.openstreetmap.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tfhub.dev https://www.kaggle.com https://storage.googleapis.com https://*.googleapis.com https://detect.roboflow.com https://api.roboflow.com https://*.roboflow.com; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:;">
-  <title>Litteryl - Turn Trash Into Rewards</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://nominatim.openstreetmap.org https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tfhub.dev https://www.kaggle.com https://storage.googleapis.com https://*.googleapis.com https://api.trashai.org https://*.trashai.org https://raw.githubusercontent.com https://*.supabase.co; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:;">
+  <title>EcoVenture - Turn Trash Into Rewards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -14,15 +15,28 @@
     <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <h1 class="logo">🗑️ Litteryl</h1>
-        <div class="user-stats" id="headerStats">
-          <span class="points-badge" id="headerPoints">0 pts</span>
+        <h1 class="logo">🌱 EcoVenture</h1>
+        <div class="header-right">
+          <span class="points-badge" id="headerPoints">✨ 0 pts</span>
+          <button class="auth-btn" id="authBtn" title="Account">👤</button>
         </div>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Auth Banner (shown when not logged in) -->
+      <div class="auth-banner" id="authBanner">
+        <div class="auth-banner-content">
+          <span class="auth-banner-icon">🔐</span>
+          <div class="auth-banner-text">
+            <strong>Sign in to compete!</strong>
+            <span>Join leaderboards and sync your progress</span>
+          </div>
+          <button class="btn btn-small btn-primary" id="authBannerBtn">Sign In</button>
+        </div>
+      </div>
+
       <!-- Location Status Banner -->
       <div class="location-banner" id="locationBanner">
         <div class="location-status" id="locationStatus">
@@ -31,123 +45,630 @@
         </div>
       </div>
 
-      <!-- Camera/Video Section -->
-      <section class="camera-section" id="cameraSection">
-        <div class="video-container">
-          <video id="videoPreview" autoplay playsinline muted></video>
-          <canvas id="detectionCanvas"></canvas>
-          <div class="video-overlay" id="videoOverlay">
-            <div class="overlay-content">
-              <span class="camera-icon">📹</span>
-              <p>Tap to start camera</p>
+      <!-- Navigation -->
+      <nav class="nav-container" id="navContainer">
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+        <div class="nav-tabs" id="navTabs">
+          <button class="nav-tab active" data-tab="home">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Home</span>
+          </button>
+          <button class="nav-tab" data-tab="cleanups">
+            <span class="nav-icon">📅</span>
+            <span class="nav-label">Cleanups</span>
+          </button>
+          <button class="nav-tab" data-tab="leaderboard">
+            <span class="nav-icon">🏆</span>
+            <span class="nav-label">Leaderboard</span>
+          </button>
+          <button class="nav-tab" data-tab="redeem">
+            <span class="nav-icon">🎁</span>
+            <span class="nav-label">Redeem</span>
+          </button>
+          <button class="nav-tab" data-tab="profile">
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">Profile</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Tab Content: Home -->
+      <div class="tab-content active" id="homeTab">
+        <!-- Camera/Video Section -->
+        <section class="camera-section" id="cameraSection">
+          <div class="video-container">
+            <video id="videoPreview" autoplay playsinline muted></video>
+            <canvas id="detectionCanvas"></canvas>
+            <div class="video-overlay" id="videoOverlay">
+              <div class="overlay-content">
+                <span class="camera-icon">📹</span>
+                <p>Tap to start camera</p>
+              </div>
+            </div>
+            <div class="recording-indicator" id="recordingIndicator">
+              <span class="rec-dot"></span>
+              <span class="rec-text">REC</span>
+              <span class="rec-time" id="recTime">00:00</span>
+            </div>
+            <div class="detection-badge hidden" id="detectionBadge">
+              <span class="detection-icon">🔍</span>
+              <span class="detection-text">Detecting...</span>
             </div>
           </div>
-          <div class="recording-indicator" id="recordingIndicator">
-            <span class="rec-dot"></span>
-            <span class="rec-text">REC</span>
-            <span class="rec-time" id="recTime">00:00</span>
-          </div>
-          <div class="detection-badge hidden" id="detectionBadge">
-            <span class="detection-icon">🔍</span>
-            <span class="detection-text">Detecting...</span>
-          </div>
-        </div>
 
-        <!-- Camera Controls -->
-        <div class="camera-controls">
-          <button class="control-btn" id="switchCameraBtn" title="Switch Camera">
-            🔄
+          <!-- Camera Controls -->
+          <div class="camera-controls">
+            <button class="control-btn" id="switchCameraBtn" title="Switch Camera">
+              🔄
+            </button>
+            <button class="record-btn" id="recordBtn" disabled>
+              <span class="record-icon"></span>
+            </button>
+            <button class="control-btn" id="detectBtn" title="Live Detection" disabled>
+              🔍
+            </button>
+          </div>
+
+          <!-- Instructions -->
+          <div class="instructions" id="instructions">
+            <h3>How to earn points:</h3>
+            <ol>
+              <li>📍 Be in a public place (park, street, etc.)</li>
+              <li>📹 Record yourself picking up litter</li>
+              <li>🗑️ Show the disposal in a bin</li>
+              <li>🎁 Earn points and get rewards!</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- Processing Section -->
+        <section class="processing-section hidden" id="processingSection">
+          <div class="processing-card">
+            <div class="processing-animation">
+              <div class="spinner"></div>
+            </div>
+            <h2>Analyzing your video...</h2>
+            <p id="processingStatus">Detecting litter and verifying disposal</p>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section hidden" id="resultsSection">
+          <div class="results-card" id="resultsCard">
+            <!-- Populated by JavaScript -->
+          </div>
+          <button class="btn btn-primary btn-large" id="newRecordingBtn">
+            Record Another
           </button>
-          <button class="record-btn" id="recordBtn" disabled>
-            <span class="record-icon"></span>
-          </button>
-          <button class="control-btn" id="detectBtn" title="Live Detection" disabled>
-            🔍
-          </button>
-        </div>
+        </section>
 
-        <!-- Instructions -->
-        <div class="instructions" id="instructions">
-          <h3>How to earn points:</h3>
-          <ol>
-            <li>📍 Be in a public place (park, street, etc.)</li>
-            <li>📹 Record yourself picking up litter</li>
-            <li>🗑️ Show the disposal in a bin</li>
-            <li>🎁 Earn points and get rewards!</li>
-          </ol>
-        </div>
-      </section>
+        <!-- Stats Section -->
+        <section class="stats-section" id="statsSection">
+          <h2>📊 Your Progress</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-icon">🏆</span>
+              <span class="stat-value" id="totalPoints">0</span>
+              <span class="stat-label">Points</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">📦</span>
+              <span class="stat-value" id="submissions">0</span>
+              <span class="stat-label">Submissions</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">🔥</span>
+              <span class="stat-value" id="streak">0</span>
+              <span class="stat-label">Day Streak</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon" id="levelIcon">🌱</span>
+              <span class="stat-value" id="levelName">Beginner</span>
+              <span class="stat-label">Level</span>
+            </div>
+          </div>
 
-      <!-- Processing Section -->
-      <section class="processing-section hidden" id="processingSection">
-        <div class="processing-card">
-          <div class="processing-animation">
-            <div class="spinner"></div>
+          <!-- Level Progress -->
+          <div class="level-progress" id="levelProgress">
+            <div class="level-info">
+              <span id="currentLevel">Eco Beginner</span>
+              <span id="nextLevel">Next: Litter Picker</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="levelProgressFill" style="width: 0%"></div>
+            </div>
           </div>
-          <h2>Analyzing your video...</h2>
-          <p id="processingStatus">Detecting litter and verifying disposal</p>
-          <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <!-- Results Section -->
-      <section class="results-section hidden" id="resultsSection">
-        <div class="results-card" id="resultsCard">
-          <!-- Populated by JavaScript -->
-        </div>
-        <button class="btn btn-primary btn-large" id="newRecordingBtn">
-          Record Another
-        </button>
-      </section>
+      <!-- Tab Content: Cleanups -->
+      <div class="tab-content" id="cleanupsTab">
+        <section class="cleanups-section">
+          <div class="cleanups-header">
+            <h2>Organized Cleanups</h2>
+            <button class="btn btn-primary" id="createCleanupBtn">
+              <span>+</span> Create
+            </button>
+          </div>
 
-      <!-- Stats Section -->
-      <section class="stats-section" id="statsSection">
-        <h2>Your Progress</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-icon">🏆</span>
-            <span class="stat-value" id="totalPoints">0</span>
-            <span class="stat-label">Points</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-icon">📦</span>
-            <span class="stat-value" id="submissions">0</span>
-            <span class="stat-label">Submissions</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-icon">🔥</span>
-            <span class="stat-value" id="streak">0</span>
-            <span class="stat-label">Day Streak</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-icon" id="levelIcon">🌱</span>
-            <span class="stat-value" id="levelName">Beginner</span>
-            <span class="stat-label">Level</span>
-          </div>
-        </div>
+          <p class="cleanups-desc">Join community cleanup events in your area and earn bonus points for attending!</p>
 
-        <!-- Level Progress -->
-        <div class="level-progress" id="levelProgress">
-          <div class="level-info">
-            <span id="currentLevel">Eco Beginner</span>
-            <span id="nextLevel">Next: Litter Picker</span>
+          <!-- Cleanup View Toggle -->
+          <div class="cleanup-toggle">
+            <button class="toggle-btn active" data-view="upcoming">
+              Upcoming
+            </button>
+            <button class="toggle-btn" data-view="my-events">
+              My Events
+            </button>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="levelProgressFill" style="width: 0%"></div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Rewards Section -->
-      <section class="rewards-section" id="rewardsSection">
-        <h2>Available Rewards</h2>
-        <div class="rewards-grid" id="rewardsGrid">
-          <!-- Populated by JavaScript -->
-        </div>
-      </section>
+          <!-- Upcoming Cleanups -->
+          <div class="cleanup-content active" id="upcomingCleanups">
+            <div class="cleanup-list" id="upcomingCleanupsList">
+              <!-- Populated by JavaScript -->
+              <div class="cleanup-empty">
+                <span class="empty-icon">📅</span>
+                <p>No upcoming events</p>
+                <span class="empty-desc">Be the first to organize a cleanup in your area!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- My Events -->
+          <div class="cleanup-content" id="my-eventsCleanups">
+            <div class="cleanup-list" id="myEventsList">
+              <!-- Populated by JavaScript -->
+              <div class="cleanup-empty">
+                <span class="empty-icon">⭐</span>
+                <p>No events yet</p>
+                <span class="empty-desc">Join an upcoming cleanup or create your own!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cleanup Info Card -->
+          <div class="cleanup-info-card">
+            <h4>How it works</h4>
+            <ul>
+              <li>Create or join cleanup events in your area</li>
+              <li>Meet other eco-warriors at the event</li>
+              <li>Check in when you arrive to earn bonus points</li>
+              <li>Earn +50 bonus points for every event you attend!</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Leaderboard -->
+      <div class="tab-content" id="leaderboardTab">
+        <section class="leaderboard-section">
+          <h2>🏆 Leaderboards</h2>
+
+          <!-- Leaderboard Type Toggle -->
+          <div class="leaderboard-toggle">
+            <button class="toggle-btn active" data-leaderboard="area">
+              <span>📍</span> Area
+            </button>
+            <button class="toggle-btn" data-leaderboard="friends">
+              <span>👥</span> Friends
+            </button>
+            <button class="toggle-btn" data-leaderboard="global">
+              <span>🌍</span> Global
+            </button>
+          </div>
+
+          <!-- Area Leaderboard -->
+          <div class="leaderboard-content active" id="areaLeaderboard">
+            <div class="leaderboard-header">
+              <div class="area-info">
+                <span class="area-icon">📍</span>
+                <span class="area-name" id="currentAreaName">Loading area...</span>
+              </div>
+              <button class="btn btn-small btn-secondary" id="changeAreaBtn">Change</button>
+            </div>
+
+            <div class="your-rank-card" id="yourAreaRank">
+              <div class="rank-badge">
+                <span class="rank-number">#-</span>
+              </div>
+              <div class="rank-info">
+                <span class="rank-label">Your Area Rank</span>
+                <span class="rank-points">0 pts</span>
+              </div>
+            </div>
+
+            <div class="leaderboard-list" id="areaLeaderboardList">
+              <!-- Populated by JavaScript -->
+              <div class="leaderboard-empty">
+                <span class="empty-icon">🔐</span>
+                <p>Sign in to see area leaderboard</p>
+                <button class="btn btn-primary" id="leaderboardSignInBtn">Sign In</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Friends Leaderboard -->
+          <div class="leaderboard-content" id="friendsLeaderboard">
+            <!-- Friend Code & Add Friend -->
+            <div class="friends-header">
+              <div class="friend-code-card" id="friendCodeCard">
+                <div class="friend-code-label">Your Friend Code</div>
+                <div class="friend-code-value" id="myFriendCode">--------</div>
+                <button class="btn btn-small btn-secondary" id="copyFriendCodeBtn">Copy</button>
+              </div>
+              <button class="btn btn-primary" id="addFriendBtn">
+                <span>➕</span> Add Friend
+              </button>
+            </div>
+
+            <!-- Pending Requests Badge -->
+            <div class="pending-requests-banner hidden" id="pendingRequestsBanner">
+              <span class="pending-icon">📬</span>
+              <span class="pending-text"><span id="pendingCount">0</span> pending friend requests</span>
+              <button class="btn btn-small btn-primary" id="viewRequestsBtn">View</button>
+            </div>
+
+            <!-- Friends Rank Card -->
+            <div class="your-rank-card" id="yourFriendsRank">
+              <div class="rank-badge friends">
+                <span class="rank-number">#-</span>
+              </div>
+              <div class="rank-info">
+                <span class="rank-label">Your Rank Among Friends</span>
+                <span class="rank-points">0 pts</span>
+              </div>
+            </div>
+
+            <!-- Friends List / Leaderboard -->
+            <div class="leaderboard-list" id="friendsLeaderboardList">
+              <div class="leaderboard-empty" id="friendsEmptyState">
+                <span class="empty-icon">👥</span>
+                <p>No friends yet</p>
+                <span class="empty-desc">Add friends using their friend code to compete!</span>
+                <button class="btn btn-primary" id="addFirstFriendBtn">Add Your First Friend</button>
+              </div>
+            </div>
+
+            <!-- Friends Stats -->
+            <div class="friends-stats-card hidden" id="friendsStatsCard">
+              <div class="friends-stat">
+                <span class="friends-stat-value" id="totalFriendsCount">0</span>
+                <span class="friends-stat-label">Friends</span>
+              </div>
+              <div class="friends-stat">
+                <span class="friends-stat-value" id="friendsAhead">0</span>
+                <span class="friends-stat-label">Ahead of You</span>
+              </div>
+              <div class="friends-stat">
+                <span class="friends-stat-value" id="friendsBehind">0</span>
+                <span class="friends-stat-label">Behind You</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Global Leaderboard -->
+          <div class="leaderboard-content" id="globalLeaderboard">
+            <div class="your-rank-card" id="yourGlobalRank">
+              <div class="rank-badge global">
+                <span class="rank-number">#-</span>
+              </div>
+              <div class="rank-info">
+                <span class="rank-label">Your Global Rank</span>
+                <span class="rank-points">0 pts</span>
+              </div>
+            </div>
+
+            <div class="leaderboard-list" id="globalLeaderboardList">
+              <!-- Populated by JavaScript -->
+              <div class="leaderboard-empty">
+                <span class="empty-icon">🔐</span>
+                <p>Sign in to see global leaderboard</p>
+                <button class="btn btn-primary" id="globalSignInBtn">Sign In</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Redeem -->
+      <div class="tab-content" id="redeemTab">
+        <section class="redeem-section">
+          <h2>🎁 Redeem Rewards</h2>
+
+          <!-- Points Balance -->
+          <div class="points-balance-card">
+            <div class="balance-icon">💰</div>
+            <div class="balance-info">
+              <span class="balance-label">Available Points</span>
+              <span class="balance-value" id="redeemPointsBalance">0</span>
+            </div>
+          </div>
+
+          <!-- Rewards Categories -->
+          <div class="rewards-categories">
+            <button class="category-btn active" data-category="all">All</button>
+            <button class="category-btn" data-category="gift_card">Gift Cards</button>
+            <button class="category-btn" data-category="donation">Donations</button>
+          </div>
+
+          <!-- Rewards Grid -->
+          <div class="rewards-grid" id="rewardsGrid">
+            <!-- Populated by JavaScript -->
+          </div>
+
+          <!-- Redemption History -->
+          <div class="redemption-history">
+            <h3>📜 Redemption History</h3>
+            <div class="history-list" id="redemptionHistoryList">
+              <div class="history-empty">
+                <span>No redemptions yet</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Profile -->
+      <div class="tab-content" id="profileTab">
+        <section class="profile-section">
+          <!-- Logged Out State -->
+          <div class="profile-logged-out" id="profileLoggedOut">
+            <div class="profile-hero">
+              <div class="hero-icon">🌍</div>
+              <h2>Join EcoVenture</h2>
+              <p>Create an account to save your progress, compete on leaderboards, and earn rewards!</p>
+            </div>
+
+            <div class="auth-buttons">
+              <button class="btn btn-primary btn-large" id="showSignUpBtn">Create Account</button>
+              <button class="btn btn-secondary btn-large" id="showSignInBtn">Sign In</button>
+            </div>
+
+            <div class="auth-features">
+              <div class="feature-item">
+                <span class="feature-icon">☁️</span>
+                <span>Cloud sync your progress</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">🏆</span>
+                <span>Compete on leaderboards</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">👥</span>
+                <span>Add friends and compete</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">📱</span>
+                <span>Access from any device</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logged In State -->
+          <div class="profile-logged-in hidden" id="profileLoggedIn">
+            <div class="profile-header">
+              <div class="profile-avatar" id="profileAvatar">
+                <span>👤</span>
+              </div>
+              <div class="profile-info">
+                <h2 class="profile-name" id="profileName">EcoWarrior</h2>
+                <span class="profile-email" id="profileEmail">user@example.com</span>
+              </div>
+              <button class="btn btn-small btn-secondary" id="editProfileBtn">Edit</button>
+            </div>
+
+            <div class="profile-stats">
+              <div class="profile-stat">
+                <span class="stat-value" id="profileTotalPoints">0</span>
+                <span class="stat-label">Total Points</span>
+              </div>
+              <div class="profile-stat">
+                <span class="stat-value" id="profileSubmissions">0</span>
+                <span class="stat-label">Cleanups</span>
+              </div>
+              <div class="profile-stat">
+                <span class="stat-value" id="profileStreak">0</span>
+                <span class="stat-label">Day Streak</span>
+              </div>
+            </div>
+
+            <div class="profile-area-card">
+              <div class="area-header">
+                <span class="area-icon">📍</span>
+                <span class="area-title">Your Area</span>
+              </div>
+              <div class="area-value" id="profileArea">Not set</div>
+              <button class="btn btn-small btn-secondary" id="setAreaBtn">Set Area</button>
+            </div>
+
+            <div class="profile-friend-code-card">
+              <div class="area-header">
+                <span class="area-icon">👥</span>
+                <span class="area-title">Your Friend Code</span>
+              </div>
+              <div class="friend-code-display" id="profileFriendCode">--------</div>
+              <button class="btn btn-small btn-secondary" id="copyProfileFriendCodeBtn">Copy Code</button>
+            </div>
+
+            <div class="profile-actions">
+              <button class="btn btn-secondary btn-large" id="signOutBtn">
+                <span>🚪</span> Sign Out
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
+
+    <!-- Auth Modal -->
+    <div class="modal hidden" id="authModal">
+      <div class="modal-content auth-modal">
+        <button class="modal-close" id="authModalClose">&times;</button>
+
+        <!-- Sign In Form -->
+        <div class="auth-form" id="signInForm">
+          <div class="auth-form-header">
+            <span class="auth-icon">🌿</span>
+            <h2>Welcome Back!</h2>
+            <p>Sign in to continue your eco journey</p>
+          </div>
+
+          <div class="form-group">
+            <label for="signInEmail">Email</label>
+            <input type="email" id="signInEmail" placeholder="your@email.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="signInPassword">Password</label>
+            <input type="password" id="signInPassword" placeholder="Your password" required>
+          </div>
+
+          <button class="btn btn-primary btn-large" id="signInSubmitBtn">Sign In</button>
+
+          <div class="auth-switch">
+            <span>Don't have an account?</span>
+            <button class="link-btn" id="switchToSignUp">Create one</button>
+          </div>
+        </div>
+
+        <!-- Sign Up Form -->
+        <div class="auth-form hidden" id="signUpForm">
+          <div class="auth-form-header">
+            <span class="auth-icon">🌍</span>
+            <h2>Join EcoVenture</h2>
+            <p>Create your account and start saving the planet!</p>
+          </div>
+
+          <div class="form-group">
+            <label for="signUpUsername">Username</label>
+            <input type="text" id="signUpUsername" placeholder="EcoWarrior123" required>
+          </div>
+
+          <div class="form-group">
+            <label for="signUpEmail">Email</label>
+            <input type="email" id="signUpEmail" placeholder="your@email.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="signUpPassword">Password</label>
+            <input type="password" id="signUpPassword" placeholder="Min. 6 characters" required minlength="6">
+          </div>
+
+          <button class="btn btn-primary btn-large" id="signUpSubmitBtn">Create Account</button>
+
+          <div class="auth-switch">
+            <span>Already have an account?</span>
+            <button class="link-btn" id="switchToSignIn">Sign in</button>
+          </div>
+        </div>
+
+        <!-- Email Verification -->
+        <div class="auth-form hidden" id="verificationForm">
+          <div class="auth-form-header">
+            <span class="auth-icon">📧</span>
+            <h2>Check Your Email!</h2>
+            <p>We've sent a verification link to your email address.</p>
+          </div>
+
+          <div class="verification-info">
+            <p>Click the link in your email to verify your account, then come back here to sign in.</p>
+          </div>
+
+          <button class="btn btn-primary btn-large" id="backToSignInBtn">Back to Sign In</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Area Selection Modal -->
+    <div class="modal hidden" id="areaModal">
+      <div class="modal-content">
+        <button class="modal-close" id="areaModalClose">&times;</button>
+        <div class="area-modal-content">
+          <h2>📍 Set Your Area</h2>
+          <p>Choose your city/region to compete on the local leaderboard</p>
+
+          <div class="form-group">
+            <label for="areaInput">City / Region</label>
+            <input type="text" id="areaInput" placeholder="e.g., San Francisco, London, Tokyo">
+          </div>
+
+          <div class="form-group">
+            <label for="countryInput">Country</label>
+            <input type="text" id="countryInput" placeholder="e.g., USA, UK, Japan">
+          </div>
+
+          <button class="btn btn-primary btn-large" id="saveAreaBtn">Save Area</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Friend Modal -->
+    <div class="modal hidden" id="addFriendModal">
+      <div class="modal-content">
+        <button class="modal-close" id="addFriendModalClose">&times;</button>
+        <div class="add-friend-content">
+          <h2>👥 Add Friend</h2>
+          <p>Enter your friend's code to send them a request</p>
+
+          <div class="form-group">
+            <label for="friendCodeInput">Friend Code</label>
+            <input type="text" id="friendCodeInput" placeholder="e.g., ABC12345" maxlength="8" style="text-transform: uppercase;">
+          </div>
+
+          <div class="friend-search-result hidden" id="friendSearchResult">
+            <div class="friend-preview">
+              <div class="friend-preview-avatar">👤</div>
+              <div class="friend-preview-info">
+                <span class="friend-preview-name" id="friendPreviewName">Username</span>
+                <span class="friend-preview-points" id="friendPreviewPoints">0 pts</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-large" id="sendFriendRequestBtn">Send Friend Request</button>
+
+          <div class="friend-code-share">
+            <span class="share-label">Share your code:</span>
+            <div class="share-code" id="shareMyCode">--------</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Friend Requests Modal -->
+    <div class="modal hidden" id="friendRequestsModal">
+      <div class="modal-content">
+        <button class="modal-close" id="friendRequestsModalClose">&times;</button>
+        <div class="friend-requests-content">
+          <h2>📬 Friend Requests</h2>
+
+          <div class="requests-tabs">
+            <button class="requests-tab active" data-requests="received">Received</button>
+            <button class="requests-tab" data-requests="sent">Sent</button>
+          </div>
+
+          <div class="requests-list" id="receivedRequestsList">
+            <div class="requests-empty">
+              <span>No pending requests</span>
+            </div>
+          </div>
+
+          <div class="requests-list hidden" id="sentRequestsList">
+            <div class="requests-empty">
+              <span>No sent requests</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Reward Modal -->
     <div class="modal hidden" id="rewardModal">
@@ -159,11 +680,84 @@
       </div>
     </div>
 
+    <!-- Create Cleanup Event Modal -->
+    <div class="modal hidden" id="createCleanupModal">
+      <div class="modal-content">
+        <button class="modal-close" id="createCleanupModalClose">&times;</button>
+        <div class="create-cleanup-content">
+          <h2>📅 Create Cleanup Event</h2>
+          <p>Organize a community cleanup in your area</p>
+
+          <div class="form-group">
+            <label for="cleanupEventTitle">Event Title *</label>
+            <input type="text" id="cleanupEventTitle" placeholder="e.g., Central Park Cleanup" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cleanupEventDescription">Description</label>
+            <textarea id="cleanupEventDescription" rows="3" placeholder="What should attendees know? (optional)"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="cleanupEventLocation">Location *</label>
+            <input type="text" id="cleanupEventLocation" placeholder="e.g., Main entrance, near the fountain" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cleanupEventArea">Area / City *</label>
+            <input type="text" id="cleanupEventArea" placeholder="e.g., San Francisco" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cleanupEventDate">Date & Time *</label>
+            <input type="datetime-local" id="cleanupEventDate" required>
+          </div>
+
+          <div class="create-cleanup-note">
+            <span class="note-icon">ℹ️</span>
+            <span>You can only create one event per week</span>
+          </div>
+
+          <button class="btn btn-primary btn-large" id="submitCleanupEventBtn">Create Event</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div class="modal hidden" id="eventDetailsModal">
+      <div class="modal-content">
+        <button class="modal-close" id="eventDetailsModalClose">&times;</button>
+        <div id="eventDetailsBody">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
   </div>
 
-  <!-- Roboflow Trash Detection API (no heavy TensorFlow download needed!) -->
-  <script src="app.js"></script>
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <!-- Supabase Config -->
+  <script src="supabase.js"></script>
+
+  <!-- App Modules -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/detection.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/leaderboard.js"></script>
+  <script src="js/friends.js"></script>
+  <script src="js/rewards.js"></script>
+  <script src="js/cleanups.js"></script>
+
+  <!-- Main App -->
+  <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 {
-  "name": "litteryl",
-  "version": "1.0.5",
+  "name": "eco-earning",
+  "version": "1.0.6-beta",
   "description": "Mobile and desktop app for recording litter disposal in exchange for reward points",
   "main": "main.js",
   "scripts": {
@@ -9,11 +9,14 @@
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:run": "npx cap run android"
   },
   "build": {
-    "appId": "com.litteryl.app",
-    "productName": "Litteryl",
+    "appId": "com.ecoearning.app",
+    "productName": "Eco Earning",
     "directories": {
       "output": "dist"
     },
@@ -23,7 +26,7 @@
       "app/**/*"
     ],
     "win": {
-      "target": "nsis",
+      "target": "portable",
       "icon": "assets/icon.ico"
     },
     "mac": {
@@ -40,6 +43,10 @@
     }
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@supabase/supabase-js": "^2.87.1",
     "electron-store": "^5.2.0",
     "uuid": "^9.0.0"
   },

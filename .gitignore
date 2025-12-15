@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 dist/
 Raw App/
+Android Studio Installer/
 
 # IDE/Editor
 .idea/
@@ -25,3 +26,4 @@ npm-debug.log*
 
 # Claude Code settings
 .claude/
+
