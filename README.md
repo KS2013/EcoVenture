@@ -1,22 +1,27 @@
-# 🗑️ Litteryl
+# Eco Earning
 
-**Turn Trash Into Rewards** - A desktop and mobile app that rewards you for cleaning up litter in public places.
+**Turn Trash Into Rewards** - A cross-platform app that rewards you for cleaning up litter in public places.
 
 ## Features
 
-- 📹 **Video Recording** - Record yourself picking up and disposing of litter
-- 🤖 **Real-Time AI Detection** - Live litter detection using TensorFlow.js COCO-SSD model
-- 📍 **Location Verification** - Ensures you're in a public place (park, street, beach, etc.)
-- 🏆 **Points System** - Earn points for verified litter disposal
-- 🎁 **Gift Card Rewards** - Redeem points for Amazon, Starbucks, Target, and more
-- 💾 **Persistent Storage** - Your progress is saved locally
-- 📱 **Cross-Platform** - Works on Windows, Mac, and Linux
+- **Video Recording** - Record yourself picking up and disposing of litter
+- **Multi-Model AI Detection** - Real-time litter detection using:
+  - TensorFlow.js COCO-SSD (local, offline)
+  - MobileNet for enhanced classification
+  - TACO dataset categories for specialized trash detection
+- **Location Verification** - Ensures you're in a public place (park, street, beach, etc.)
+- **Points System** - Earn points for verified litter disposal
+- **Gift Card Rewards** - Redeem points for Amazon, Starbucks, Target, and more
+- **Organized Cleanups** - Join community cleanup events with RSVP and check-in
+- **Cloud Sync** - Supabase backend for user data persistence
+- **Cross-Platform** - Desktop (Windows, Mac, Linux) and Android
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ installed
+- Node.js 18+
+- Android Studio (for Android builds)
 
 ### Installation
 
@@ -24,14 +29,14 @@
 # Install dependencies
 npm install
 
-# Run the app
+# Run the Electron app
 npm start
 
 # Run in dev mode (with DevTools)
 npm run dev
 ```
 
-### Building for Distribution
+### Building
 
 ```bash
 # Build for Windows
@@ -47,12 +52,25 @@ npm run build:linux
 npm run build
 ```
 
+### Android
+
+```bash
+# Sync Capacitor
+npm run android:sync
+
+# Open in Android Studio
+npm run android:open
+
+# Run on device/emulator
+npm run android:run
+```
+
 ## How It Works
 
-1. **Open the app** on your computer
+1. **Open the app** on your device
 2. **Allow camera and location access**
 3. **Go to a public place** (park, beach, street, etc.)
-4. **Enable live detection** to see AI recognizing objects
+4. **Enable live detection** to see AI recognizing litter
 5. **Record yourself** picking up litter and disposing of it
 6. **Submit for verification** - AI analyzes your recording
 7. **Earn points** and redeem for gift cards!
@@ -64,7 +82,7 @@ npm run build
 | Verified disposal | 50 pts |
 | High confidence (>80%) | +20 pts |
 | Multiple items | +10 pts each |
-| Daily streak | +25 pts × days |
+| Daily streak | +25 pts x days |
 | First submission | +100 pts |
 
 ## Available Rewards
@@ -75,43 +93,52 @@ npm run build
 - $10 Target Gift Card - 950 pts
 - Plant 5 Trees - 300 pts
 - Ocean Cleanup (1 lb) - 250 pts
-- And more!
 
 ## Tech Stack
 
 - **Desktop**: Electron
-- **AI/ML**: TensorFlow.js COCO-SSD (browser-based, no Python needed!)
+- **Mobile**: Capacitor (Android)
+- **AI/ML**: TensorFlow.js COCO-SSD, MobileNet
+- **Backend**: Supabase
 - **Frontend**: Vanilla JS, CSS3, HTML5
-- **Storage**: electron-store (persistent local storage)
+- **Storage**: electron-store (desktop), Supabase (cloud)
 - **APIs**: OpenStreetMap Nominatim for geocoding
 
 ## Project Structure
 
 ```
-litteryl/
-├── main.js           # Electron main process
-├── preload.js        # Secure bridge between main and renderer
+eco-earning/
+├── main.js              # Electron main process
+├── preload.js           # Secure bridge between main and renderer
+├── capacitor.config.ts  # Capacitor configuration
 ├── app/
-│   ├── index.html    # Main HTML
-│   ├── styles.css    # Responsive styles
-│   └── app.js        # Frontend logic with AI detection
-├── assets/           # App icons
-└── dist/             # Built executables (after build)
+│   ├── index.html       # Main HTML
+│   ├── styles.css       # Responsive styles
+│   ├── app.js           # Frontend logic with AI detection
+│   ├── supabase.js      # Supabase client
+│   └── js/              # Modular JS files
+│       ├── auth.js      # Authentication
+│       ├── camera.js    # Camera handling
+│       ├── cleanups.js  # Organized cleanups
+│       ├── detection.js # AI detection
+│       ├── friends.js   # Social features
+│       ├── leaderboard.js
+│       ├── rewards.js   # Rewards system
+│       └── ui.js        # UI utilities
+├── android/             # Android project (Capacitor)
+├── assets/              # App icons
+└── dist/                # Built executables
 ```
 
 ## AI Detection
 
-The app uses TensorFlow.js COCO-SSD model running directly in the browser:
-- **No server needed** - AI runs locally on your device
-- **Real-time detection** - See bounding boxes around detected objects
-- **Litter classes** - Detects bottles, cups, food items, and more
+The app uses multiple AI models for robust trash detection:
 
-## Notes
+- **COCO-SSD**: Detects 80+ object classes including bottles, cups, food items
+- **MobileNet**: Additional classification for confidence boosting
+- **TACO Categories**: 60+ specialized trash categories (plastic bags, cigarettes, cans, etc.)
 
-- Camera and microphone permissions are automatically granted
-- Location is verified using OpenStreetMap (free, no API key)
-- Points and user data persist between sessions
-- Gift card codes are demo codes (integrate with real API for production)
+All detection runs locally on your device - no server required.
 
 ## License
 
