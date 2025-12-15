@@ -5,6 +5,7 @@ node_modules/
 dist/
 Raw App/
 Android Studio Installer/
+android/
 
 # IDE/Editor
 .idea/
