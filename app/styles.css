@@ -1567,99 +1567,35 @@ button, input, a, .reward-card, .video-overlay, .stat-card {
 }
 
 /* ========================================
-   Navigation Container & Hamburger Menu
+   Navigation Bar
    ======================================== */
-.nav-container {
-  position: relative;
-  margin: 12px 16px;
-}
-
-.hamburger-btn {
+.navbar {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
-  gap: 5px;
-  width: 44px;
-  height: 44px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(15px);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 10px;
-}
-
-.hamburger-btn:hover {
-  background: var(--bg-card);
-  border-color: var(--primary);
-}
-
-.hamburger-btn.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-color: var(--primary);
-}
-
-.hamburger-btn.active .hamburger-line {
-  background: white;
-}
-
-.hamburger-line {
-  width: 20px;
-  height: 2px;
-  background: var(--text-secondary);
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-.hamburger-btn.active .hamburger-line:nth-child(1) {
-  transform: rotate(45deg) translate(5px, 5px);
-}
-
-.hamburger-btn.active .hamburger-line:nth-child(2) {
-  opacity: 0;
-}
-
-.hamburger-btn.active .hamburger-line:nth-child(3) {
-  transform: rotate(-45deg) translate(5px, -5px);
-}
-
-/* Navigation Tabs */
-.nav-tabs {
-  display: none;
-  flex-direction: column;
-  position: absolute;
-  top: 52px;
-  left: 0;
-  right: 0;
   background: var(--bg-glass);
   backdrop-filter: blur(15px);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
+  margin: 12px 16px;
   padding: 8px;
   gap: 4px;
-  z-index: 100;
-  box-shadow: var(--shadow-lg);
-}
-
-.nav-tabs.open {
-  display: flex;
 }
 
 .nav-tab {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 4px;
+  padding: 10px 12px;
   background: transparent;
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
   transition: all 0.3s ease;
   color: var(--text-muted);
-  text-align: left;
+  flex: 1;
+  min-width: 0;
 }
 
 .nav-tab:hover {
@@ -1674,12 +1610,15 @@ button, input, a, .reward-card, .video-overlay, .stat-card {
 }
 
 .nav-icon {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .nav-label {
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ========================================

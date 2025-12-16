@@ -62,7 +62,56 @@ function resetConfidenceTracker() {
   confidenceTracker.frameCount = 0;
 }
 
-// Load TrashNet model using MobileNet as feature extractor
+// ImageNet class labels (top 1000 classes - we'll use a subset for trash detection)
+// This is loaded from a local file to avoid TFHub dependency
+let imagenetClasses = null;
+
+// Load ImageNet classes from local JSON
+async function loadImageNetClasses() {
+  try {
+    const response = await fetch('models/imagenet_classes.json');
+    const classArray = await response.json();
+    // The file is an array, convert to object for easy lookup
+    imagenetClasses = {};
+    classArray.forEach((name, idx) => {
+      imagenetClasses[idx] = name;
+    });
+    console.log('Loaded', Object.keys(imagenetClasses).length, 'ImageNet classes');
+    return true;
+  } catch (e) {
+    console.warn('Could not load ImageNet classes, using built-in subset');
+    // Fallback to built-in subset of relevant classes
+    imagenetClasses = getBuiltInClasses();
+    return true;
+  }
+}
+
+// Built-in subset of ImageNet classes relevant to trash/litter detection
+function getBuiltInClasses() {
+  return {
+    // Bottles & containers
+    898: 'water bottle', 907: 'wine bottle', 737: 'pop bottle', 440: 'beer bottle',
+    653: 'measuring cup', 968: 'cup', 504: 'coffee mug', 647: 'mixing bowl',
+    // Bags
+    728: 'plastic bag', 414: 'bag', 728: 'grocery bag',
+    // Food items (often littered)
+    954: 'banana', 948: 'orange', 950: 'apple', 951: 'lemon',
+    923: 'hot dog', 927: 'pizza', 928: 'burrito', 934: 'ice cream',
+    // Paper/cardboard
+    478: 'envelope', 921: 'book', 917: 'comic book',
+    // Cans
+    520: 'can', 746: 'soda can', 441: 'beer can',
+    // Bins/receptacles (for bin detection)
+    412: 'ashcan', 413: 'trash can', 414: 'bucket',
+    // Electronics (e-waste)
+    508: 'computer keyboard', 509: 'mouse', 527: 'desktop computer',
+    487: 'cell phone', 620: 'laptop',
+    // Misc items
+    518: 'balloon', 601: 'mask', 702: 'pencil sharpener'
+  };
+}
+
+// Load TrashNet model using local MobileNet
 async function loadTrashNetModel() {
   try {
     const config = window.EcoQuestConfig.TRASHNET_CONFIG;
@@ -73,21 +122,62 @@ async function loadTrashNetModel() {
       return false;
     }
 
-    console.log('Loading MobileNet for TrashNet classification...');
+    console.log('Loading local MobileNet V1 for TrashNet classification...');
 
-    // Load MobileNet as feature extractor (without top classification layer)
-    trashNetModel = await mobilenet.load({
-      version: 2,
-      alpha: 1.0
-    });
+    // Load ImageNet classes first
+    await loadImageNetClasses();
+
+    // Load model from local files using tf.loadLayersModel
+    trashNetModel = await tf.loadLayersModel('models/mobilenet_v1/model.json');
 
     trashNetAvailable = true;
-    console.log('TrashNet (MobileNet) loaded successfully');
+    console.log('TrashNet (Local MobileNet V1) loaded successfully');
     return true;
   } catch (e) {
     console.warn('TrashNet model failed to load:', e.message);
     trashNetAvailable = false;
     return false;
+  }
+}
+
+// Custom classify function for local MobileNet model
+async function classifyImage(imageElement, topK = 5) {
+  if (!trashNetModel || !imagenetClasses) return [];
+
+  try {
+    // Preprocess image for MobileNet (224x224, normalized to [-1, 1])
+    const tensor = tf.tidy(() => {
+      let img = tf.browser.fromPixels(imageElement);
+      // Resize to 224x224
+      img = tf.image.resizeBilinear(img, [224, 224]);
+      // Normalize to [-1, 1] (MobileNet V1 expects this)
+      img = img.toFloat().div(127.5).sub(1);
+      // Add batch dimension
+      return img.expandDims(0);
+    });
+
+    // Run inference
+    const predictions = await trashNetModel.predict(tensor);
+    const data = await predictions.data();
+
+    // Clean up tensors
+    tensor.dispose();
+    predictions.dispose();
+
+    // Get top K predictions
+    const indices = Array.from(data)
+      .map((prob, idx) => ({ prob, idx }))
+      .sort((a, b) => b.prob - a.prob)
+      .slice(0, topK);
+
+    // Map to class names
+    return indices.map(({ prob, idx }) => ({
+      className: imagenetClasses[idx] || `class_${idx}`,
+      probability: prob
+    }));
+  } catch (e) {
+    console.warn('Classification failed:', e.message);
+    return [];
   }
 }
 
@@ -142,8 +232,8 @@ async function classifyWithTrashNet(videoElement) {
   try {
     const config = window.EcoQuestConfig.TRASHNET_CONFIG;
 
-    // Get predictions from MobileNet
-    const predictions = await trashNetModel.classify(videoElement, 5);
+    // Get predictions using our custom classify function
+    const predictions = await classifyImage(videoElement, 5);
 
     if (!predictions || predictions.length === 0) return null;
 

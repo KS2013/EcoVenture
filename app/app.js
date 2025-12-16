@@ -1107,35 +1107,11 @@ function sleep(ms) {
 // ========================================
 
 function setupTabNavigation() {
-  // Hamburger menu toggle
-  const hamburgerBtn = document.getElementById('hamburgerBtn');
-  const navTabs = document.getElementById('navTabs');
-
-  if (hamburgerBtn && navTabs) {
-    hamburgerBtn.addEventListener('click', () => {
-      hamburgerBtn.classList.toggle('active');
-      navTabs.classList.toggle('open');
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.nav-container')) {
-        hamburgerBtn.classList.remove('active');
-        navTabs.classList.remove('open');
-      }
-    });
-  }
-
   // Tab navigation
   const navTabBtns = document.querySelectorAll('.nav-tab');
   navTabBtns.forEach(tab => {
     tab.addEventListener('click', () => {
       switchTab(tab.dataset.tab);
-      // Close hamburger menu after selecting
-      if (hamburgerBtn && navTabs) {
-        hamburgerBtn.classList.remove('active');
-        navTabs.classList.remove('open');
-      }
     });
   });
 
