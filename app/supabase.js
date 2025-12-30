@@ -198,22 +198,22 @@ CREATE POLICY "Users can leave events" ON cleanup_attendees
 */
 
 // Supabase client initialization
-let supabase = null;
+let supabaseClient = null;
 
 function initSupabase() {
   if (typeof window !== 'undefined' && window.supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    return supabase;
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return supabaseClient;
   }
   return null;
 }
 
 // Auth functions
 async function signUp(email, password, username, displayName) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Sign up the user
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const { data: authData, error: authError } = await supabaseClient.auth.signUp({
     email,
     password,
     options: {
@@ -243,9 +243,9 @@ async function signUp(email, password, username, displayName) {
 }
 
 async function signIn(email, password) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
@@ -255,30 +255,30 @@ async function signIn(email, password) {
 }
 
 async function signOut() {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabaseClient.auth.signOut();
   if (error) throw error;
 }
 
 async function getCurrentUser() {
-  if (!supabase) return null;
+  if (!supabaseClient) return null;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabaseClient.auth.getUser();
   return user;
 }
 
 async function getSession() {
-  if (!supabase) return null;
+  if (!supabaseClient) return null;
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   return session;
 }
 
 async function getUserProfile(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('*')
     .eq('id', userId)
@@ -290,9 +290,9 @@ async function getUserProfile(userId) {
 }
 
 async function updateUserProfile(userId, updates) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', userId)
@@ -309,9 +309,9 @@ async function updateUserArea(userId, area, country) {
 
 // Leaderboard functions
 async function getAreaLeaderboard(area, limit = 50) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('id, username, display_name, avatar_url, total_points, submissions, current_streak')
     .eq('area', area)
@@ -323,9 +323,9 @@ async function getAreaLeaderboard(area, limit = 50) {
 }
 
 async function getGlobalLeaderboard(limit = 50) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('id, username, display_name, avatar_url, total_points, submissions, current_streak, area, country')
     .order('total_points', { ascending: false })
@@ -336,10 +336,10 @@ async function getGlobalLeaderboard(limit = 50) {
 }
 
 async function getUserRank(userId, area = null) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Get user's points
-  const { data: user, error: userError } = await supabase
+  const { data: user, error: userError } = await supabaseClient
     .from('profiles')
     .select('total_points')
     .eq('id', userId)
@@ -348,7 +348,7 @@ async function getUserRank(userId, area = null) {
   if (userError) throw userError;
 
   // Count users with more points
-  let query = supabase
+  let query = supabaseClient
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .gt('total_points', user.total_points);
@@ -365,9 +365,9 @@ async function getUserRank(userId, area = null) {
 
 // Submission functions
 async function createSubmission(userId, pointsEarned, itemsDetected, locationArea, locationCountry) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('submissions')
     .insert({
       user_id: userId,
@@ -381,7 +381,128 @@ async function createSubmission(userId, pointsEarned, itemsDetected, locationAre
     .single();
 
   if (error) throw error;
+
+  // Update streak after successful submission
+  await updateStreak(userId);
+
   return data;
+}
+
+// Update user's daily streak
+async function updateStreak(userId) {
+  if (!supabaseClient) return;
+
+  try {
+    // Get user's last submission date
+    const { data: lastSubmission } = await supabaseClient
+      .from('submissions')
+      .select('created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(2);
+
+    if (!lastSubmission || lastSubmission.length < 2) {
+      // First or second submission - start streak at 1
+      await supabaseClient
+        .from('profiles')
+        .update({
+          current_streak: 1,
+          longest_streak: 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      return;
+    }
+
+    const today = new Date(lastSubmission[0].created_at);
+    const lastDay = new Date(lastSubmission[1].created_at);
+
+    // Reset time to compare dates only
+    today.setHours(0, 0, 0, 0);
+    lastDay.setHours(0, 0, 0, 0);
+
+    const daysDiff = Math.floor((today - lastDay) / (1000 * 60 * 60 * 24));
+
+    // Get current profile
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('current_streak, longest_streak')
+      .eq('id', userId)
+      .single();
+
+    let newStreak = 1;
+    if (daysDiff === 1) {
+      // Consecutive day - increase streak
+      newStreak = (profile?.current_streak || 0) + 1;
+    } else if (daysDiff === 0) {
+      // Same day - keep streak
+      newStreak = profile?.current_streak || 1;
+    }
+    // If daysDiff > 1, streak resets to 1
+
+    const newLongest = Math.max(newStreak, profile?.longest_streak || 0);
+
+    await supabaseClient
+      .from('profiles')
+      .update({
+        current_streak: newStreak,
+        longest_streak: newLongest,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+  } catch (e) {
+    console.warn('Failed to update streak:', e.message);
+  }
+}
+
+// Get user's submission history (for stats)
+async function getSubmissionHistory(userId, limit = 30) {
+  if (!supabaseClient) throw new Error('Supabase not initialized');
+
+  const { data, error } = await supabaseClient
+    .from('submissions')
+    .select('id, points_earned, items_detected, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Get user's weekly stats
+async function getWeeklyStats(userId) {
+  if (!supabaseClient) throw new Error('Supabase not initialized');
+
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const { data, error } = await supabaseClient
+    .from('submissions')
+    .select('points_earned, items_detected, created_at')
+    .eq('user_id', userId)
+    .gte('created_at', weekAgo.toISOString());
+
+  if (error) throw error;
+
+  const stats = {
+    totalPoints: 0,
+    totalSubmissions: data?.length || 0,
+    itemsCollected: 0,
+    daysActive: new Set()
+  };
+
+  (data || []).forEach(sub => {
+    stats.totalPoints += sub.points_earned;
+    stats.itemsCollected += (sub.items_detected?.length || 0);
+    const day = new Date(sub.created_at).toDateString();
+    stats.daysActive.add(day);
+  });
+
+  stats.daysActive = stats.daysActive.size;
+
+  return stats;
 }
 
 // ========================================
@@ -390,9 +511,9 @@ async function createSubmission(userId, pointsEarned, itemsDetected, locationAre
 
 // Search for users by username or friend code
 async function searchUsers(query) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('id, username, display_name, avatar_url, total_points, friend_code')
     .or(`username.ilike.%${query}%,friend_code.ilike.%${query}%`)
@@ -404,9 +525,9 @@ async function searchUsers(query) {
 
 // Get user by friend code
 async function getUserByFriendCode(friendCode) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('id, username, display_name, avatar_url, total_points, friend_code')
     .eq('friend_code', friendCode.toUpperCase())
@@ -418,10 +539,10 @@ async function getUserByFriendCode(friendCode) {
 
 // Send friend request
 async function sendFriendRequest(userId, friendId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Check if friendship already exists
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseClient
     .from('friendships')
     .select('id, status')
     .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`)
@@ -435,7 +556,7 @@ async function sendFriendRequest(userId, friendId) {
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('friendships')
     .insert({
       user_id: userId,
@@ -451,9 +572,9 @@ async function sendFriendRequest(userId, friendId) {
 
 // Accept friend request
 async function acceptFriendRequest(friendshipId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('friendships')
     .update({ status: 'accepted', updated_at: new Date().toISOString() })
     .eq('id', friendshipId)
@@ -466,9 +587,9 @@ async function acceptFriendRequest(friendshipId) {
 
 // Reject friend request
 async function rejectFriendRequest(friendshipId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('friendships')
     .delete()
     .eq('id', friendshipId);
@@ -478,9 +599,9 @@ async function rejectFriendRequest(friendshipId) {
 
 // Remove friend
 async function removeFriend(userId, friendId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('friendships')
     .delete()
     .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`);
@@ -490,9 +611,9 @@ async function removeFriend(userId, friendId) {
 
 // Get pending friend requests (received)
 async function getPendingFriendRequests(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('friendships')
     .select(`
       id,
@@ -516,9 +637,9 @@ async function getPendingFriendRequests(userId) {
 
 // Get sent friend requests
 async function getSentFriendRequests(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('friendships')
     .select(`
       id,
@@ -542,10 +663,10 @@ async function getSentFriendRequests(userId) {
 
 // Get friends list
 async function getFriends(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Get friendships where user is either user_id or friend_id
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('friendships')
     .select('id, user_id, friend_id, created_at')
     .eq('status', 'accepted')
@@ -559,7 +680,7 @@ async function getFriends(userId) {
   if (friendIds.length === 0) return [];
 
   // Get friend profiles
-  const { data: profiles, error: profileError } = await supabase
+  const { data: profiles, error: profileError } = await supabaseClient
     .from('profiles')
     .select('id, username, display_name, avatar_url, total_points, submissions, current_streak')
     .in('id', friendIds)
@@ -571,13 +692,13 @@ async function getFriends(userId) {
 
 // Get friends leaderboard
 async function getFriendsLeaderboard(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Get friends
   const friends = await getFriends(userId);
 
   // Get current user profile
-  const { data: userProfile, error: userError } = await supabase
+  const { data: userProfile, error: userError } = await supabaseClient
     .from('profiles')
     .select('id, username, display_name, avatar_url, total_points, submissions, current_streak')
     .eq('id', userId)
@@ -594,9 +715,9 @@ async function getFriendsLeaderboard(userId) {
 
 // Get friend count
 async function getFriendCount(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { count, error } = await supabase
+  const { count, error } = await supabaseClient
     .from('friendships')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'accepted')
@@ -608,9 +729,9 @@ async function getFriendCount(userId) {
 
 // Get pending request count
 async function getPendingRequestCount(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { count, error } = await supabase
+  const { count, error } = await supabaseClient
     .from('friendships')
     .select('id', { count: 'exact', head: true })
     .eq('friend_id', userId)
@@ -626,13 +747,13 @@ async function getPendingRequestCount(userId) {
 
 // Create a cleanup event
 async function createCleanupEvent(userId, title, description, location, area, eventDate) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Check if user has created an event in the last 7 days
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const { data: recentEvents, error: checkError } = await supabase
+  const { data: recentEvents, error: checkError } = await supabaseClient
     .from('cleanup_events')
     .select('id')
     .eq('organizer_id', userId)
@@ -644,7 +765,7 @@ async function createCleanupEvent(userId, title, description, location, area, ev
     throw new Error('You can only create one cleanup event per week');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_events')
     .insert({
       organizer_id: userId,
@@ -664,9 +785,9 @@ async function createCleanupEvent(userId, title, description, location, area, ev
 
 // Get cleanup events in an area
 async function getAreaCleanupEvents(area, includeCompleted = false) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  let query = supabase
+  let query = supabaseClient
     .from('cleanup_events')
     .select(`
       *,
@@ -689,11 +810,11 @@ async function getAreaCleanupEvents(area, includeCompleted = false) {
 
 // Get all upcoming cleanup events
 async function getUpcomingCleanupEvents(limit = 20) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_events')
     .select(`
       *,
@@ -712,9 +833,9 @@ async function getUpcomingCleanupEvents(limit = 20) {
 
 // Get a single cleanup event with attendees
 async function getCleanupEvent(eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_events')
     .select(`
       *,
@@ -731,9 +852,9 @@ async function getCleanupEvent(eventId) {
 
 // Get attendees for an event
 async function getEventAttendees(eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_attendees')
     .select(`
       *,
@@ -750,10 +871,10 @@ async function getEventAttendees(eventId) {
 
 // Join a cleanup event (RSVP)
 async function joinCleanupEvent(userId, eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
   // Check if already joined
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseClient
     .from('cleanup_attendees')
     .select('id')
     .eq('user_id', userId)
@@ -764,7 +885,7 @@ async function joinCleanupEvent(userId, eventId) {
     throw new Error('Already joined this event');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_attendees')
     .insert({
       user_id: userId,
@@ -780,9 +901,9 @@ async function joinCleanupEvent(userId, eventId) {
 
 // Leave a cleanup event
 async function leaveCleanupEvent(userId, eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('cleanup_attendees')
     .delete()
     .eq('user_id', userId)
@@ -793,9 +914,9 @@ async function leaveCleanupEvent(userId, eventId) {
 
 // Check in to a cleanup event (attended = true)
 async function checkInToCleanupEvent(userId, eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_attendees')
     .update({
       attended: true,
@@ -812,9 +933,9 @@ async function checkInToCleanupEvent(userId, eventId) {
 
 // Get user's RSVP status for an event
 async function getUserEventStatus(userId, eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_attendees')
     .select('*')
     .eq('user_id', userId)
@@ -827,9 +948,9 @@ async function getUserEventStatus(userId, eventId) {
 
 // Get events user is attending
 async function getUserCleanupEvents(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_attendees')
     .select(`
       *,
@@ -849,9 +970,9 @@ async function getUserCleanupEvents(userId) {
 
 // Get events organized by user
 async function getUserOrganizedEvents(userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_events')
     .select('*')
     .eq('organizer_id', userId)
@@ -863,9 +984,9 @@ async function getUserOrganizedEvents(userId) {
 
 // Cancel a cleanup event (organizer only)
 async function cancelCleanupEvent(eventId, userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_events')
     .update({ status: 'cancelled' })
     .eq('id', eventId)
@@ -879,9 +1000,9 @@ async function cancelCleanupEvent(eventId, userId) {
 
 // Complete a cleanup event (organizer only)
 async function completeCleanupEvent(eventId, userId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('cleanup_events')
     .update({ status: 'completed' })
     .eq('id', eventId)
@@ -895,9 +1016,9 @@ async function completeCleanupEvent(eventId, userId) {
 
 // Get attendee count for an event
 async function getEventAttendeeCount(eventId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabaseClient) throw new Error('Supabase not initialized');
 
-  const { count, error } = await supabase
+  const { count, error } = await supabaseClient
     .from('cleanup_attendees')
     .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId);
@@ -908,9 +1029,9 @@ async function getEventAttendeeCount(eventId) {
 
 // Listen for auth changes
 function onAuthStateChange(callback) {
-  if (!supabase) return null;
+  if (!supabaseClient) return null;
 
-  return supabase.auth.onAuthStateChange((event, session) => {
+  return supabaseClient.auth.onAuthStateChange((event, session) => {
     callback(event, session);
   });
 }
@@ -936,6 +1057,8 @@ window.EcoVentureAuth = {
   getGlobalLeaderboard,
   getUserRank,
   createSubmission,
+  getSubmissionHistory,
+  getWeeklyStats,
   onAuthStateChange,
   // Friends
   searchUsers,
