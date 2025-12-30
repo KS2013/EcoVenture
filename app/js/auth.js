@@ -1,5 +1,5 @@
 /**
- * EcoQuest Auth Module
+ * EcoVenture Auth Module
  * Authentication UI handlers
  */
 
@@ -64,18 +64,18 @@ const AuthModule = {
 
   // Initialize Supabase auth state listener
   async initSupabaseListener() {
-    if (!window.EcoQuestAuth || !window.EcoQuestAuth.isConfigured()) return;
+    if (!window.EcoVentureAuth || !window.EcoVentureAuth.isConfigured()) return;
 
-    window.EcoQuestAuth.init();
+    window.EcoVentureAuth.init();
 
     // Check existing session
-    const session = await window.EcoQuestAuth.getSession();
+    const session = await window.EcoVentureAuth.getSession();
     if (session) {
       this.authUser = session.user;
       this.isLoggedIn = true;
 
       try {
-        this.userProfile = await window.EcoQuestAuth.getUserProfile(session.user.id);
+        this.userProfile = await window.EcoVentureAuth.getUserProfile(session.user.id);
       } catch (e) {
         this.userProfile = this.createDefaultProfile(session.user);
       }
@@ -84,7 +84,7 @@ const AuthModule = {
     }
 
     // Listen for auth changes
-    window.EcoQuestAuth.onAuthStateChange((event, session) => {
+    window.EcoVentureAuth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         this.authUser = session.user;
         this.isLoggedIn = true;
@@ -152,27 +152,27 @@ const AuthModule = {
     const password = document.getElementById('signInPassword')?.value;
 
     if (!email || !password) {
-      window.EcoQuestUI.showToast('Please fill in all fields', 'warning');
+      window.EcoVentureUI.showToast('Please fill in all fields', 'warning');
       return;
     }
 
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
-        const data = await window.EcoQuestAuth.signIn(email, password);
+        const data = await window.EcoVentureAuth.signIn(email, password);
         this.authUser = data.user;
         this.isLoggedIn = true;
 
         try {
-          this.userProfile = await window.EcoQuestAuth.getUserProfile(data.user.id);
+          this.userProfile = await window.EcoVentureAuth.getUserProfile(data.user.id);
         } catch (profileError) {
           this.userProfile = this.createDefaultProfile(data.user);
         }
 
         this.closeModal();
         this.updateUI();
-        window.EcoQuestUI.showToast('Welcome back!', 'success');
+        window.EcoVentureUI.showToast('Welcome back!', 'success');
       } catch (error) {
-        window.EcoQuestUI.showToast(error.message || 'Sign in failed', 'error');
+        window.EcoVentureUI.showToast(error.message || 'Sign in failed', 'error');
       }
     } else {
       // Demo mode
@@ -191,7 +191,7 @@ const AuthModule = {
 
       this.closeModal();
       this.updateUI();
-      window.EcoQuestUI.showToast('Demo mode: Signed in!', 'success');
+      window.EcoVentureUI.showToast('Demo mode: Signed in!', 'success');
     }
   },
 
@@ -202,22 +202,22 @@ const AuthModule = {
     const password = document.getElementById('signUpPassword')?.value;
 
     if (!username || !email || !password) {
-      window.EcoQuestUI.showToast('Please fill in all fields', 'warning');
+      window.EcoVentureUI.showToast('Please fill in all fields', 'warning');
       return;
     }
 
     if (password.length < 6) {
-      window.EcoQuestUI.showToast('Password must be at least 6 characters', 'warning');
+      window.EcoVentureUI.showToast('Password must be at least 6 characters', 'warning');
       return;
     }
 
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
-        await window.EcoQuestAuth.signUp(email, password, username, username);
+        await window.EcoVentureAuth.signUp(email, password, username, username);
         this.showForm('verification');
-        window.EcoQuestUI.showToast('Check your email for verification!', 'success');
+        window.EcoVentureUI.showToast('Check your email for verification!', 'success');
       } catch (error) {
-        window.EcoQuestUI.showToast(error.message || 'Sign up failed', 'error');
+        window.EcoVentureUI.showToast(error.message || 'Sign up failed', 'error');
       }
     } else {
       // Demo mode
@@ -234,15 +234,15 @@ const AuthModule = {
 
       this.closeModal();
       this.updateUI();
-      window.EcoQuestUI.showToast('Demo mode: Account created!', 'success');
+      window.EcoVentureUI.showToast('Demo mode: Account created!', 'success');
     }
   },
 
   // Handle sign out
   async handleSignOut() {
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
-        await window.EcoQuestAuth.signOut();
+        await window.EcoVentureAuth.signOut();
       } catch (error) {
         console.error('Sign out error:', error);
       }
@@ -252,7 +252,7 @@ const AuthModule = {
     this.authUser = null;
     this.userProfile = null;
     this.updateUI();
-    window.EcoQuestUI.showToast('Signed out', 'success');
+    window.EcoVentureUI.showToast('Signed out', 'success');
   },
 
   // Update UI based on auth state
@@ -303,4 +303,4 @@ const AuthModule = {
 };
 
 // Export
-window.EcoQuestAuthUI = AuthModule;
+window.EcoVentureAuthUI = AuthModule;

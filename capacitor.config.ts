@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.ecoquest.app',
-  appName: 'EcoQuest',
+  appId: 'com.ecoventure.app',
+  appName: 'EcoVenture',
   webDir: 'app',
   android: {
     allowMixedContent: true

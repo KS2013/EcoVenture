@@ -114,7 +114,7 @@ function getBuiltInClasses() {
 // Load TrashNet model using local MobileNet
 async function loadTrashNetModel() {
   try {
-    const config = window.EcoQuestConfig.TRASHNET_CONFIG;
+    const config = window.EcoVentureConfig.TRASHNET_CONFIG;
 
     if (!config || !config.ENABLED) {
       console.log('TrashNet is disabled in config');
@@ -205,7 +205,7 @@ async function loadDetectionModel() {
 
 // Check if MobileNet prediction indicates a bin/trash can
 function isBinDetection(className) {
-  const binClasses = window.EcoQuestConfig.BIN_CLASSES || [];
+  const binClasses = window.EcoVentureConfig.BIN_CLASSES || [];
   const lowerClass = className.toLowerCase();
 
   for (const binClass of binClasses) {
@@ -230,7 +230,7 @@ async function classifyWithTrashNet(videoElement) {
   if (!trashNetAvailable || !trashNetModel) return null;
 
   try {
-    const config = window.EcoQuestConfig.TRASHNET_CONFIG;
+    const config = window.EcoVentureConfig.TRASHNET_CONFIG;
 
     // Get predictions using our custom classify function
     const predictions = await classifyImage(videoElement, 5);
@@ -316,7 +316,7 @@ async function classifyWithTrashNet(videoElement) {
       }
 
       // Check if it matches any COCO trash class
-      const cocoTrash = window.EcoQuestConfig.COCO_TRASH_CLASSES;
+      const cocoTrash = window.EcoVentureConfig.COCO_TRASH_CLASSES;
       for (const trashClass of cocoTrash) {
         if (className.includes(trashClass.toLowerCase())) {
           return {
@@ -364,7 +364,7 @@ async function classifyWithTrashNet(videoElement) {
 
 // Draw detection boxes on canvas with improved visuals
 function drawDetections(ctx, canvas, allDetections, cocoTrashItems) {
-  const { COCO_TRASH_CLASSES, IGNORE_CLASSES, CONFIG } = window.EcoQuestConfig;
+  const { COCO_TRASH_CLASSES, IGNORE_CLASSES, CONFIG } = window.EcoVentureConfig;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -564,5 +564,3 @@ window.EcoVentureDetection = {
   isTrashNetAvailable: () => trashNetAvailable
 };
 
-// Backward compatibility alias
-window.EcoQuestDetection = window.EcoVentureDetection;

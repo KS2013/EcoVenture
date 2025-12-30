@@ -1,5 +1,5 @@
 /**
- * EcoQuest Leaderboard Module
+ * EcoVenture Leaderboard Module
  * Leaderboard display and management
  */
 
@@ -59,7 +59,7 @@ const LeaderboardModule = {
 
   // Load leaderboard data
   async loadData() {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     if (!auth.isLoggedIn) return;
 
     if (this.currentLeaderboard === 'area') {
@@ -67,15 +67,15 @@ const LeaderboardModule = {
     } else if (this.currentLeaderboard === 'global') {
       await this.loadGlobalLeaderboard();
     } else if (this.currentLeaderboard === 'friends') {
-      if (window.EcoQuestFriends) {
-        await window.EcoQuestFriends.loadLeaderboard();
+      if (window.EcoVentureFriends) {
+        await window.EcoVentureFriends.loadLeaderboard();
       }
     }
   },
 
   // Load area leaderboard
   async loadAreaLeaderboard() {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     const listEl = document.getElementById('areaLeaderboardList');
     const yourRankCard = document.getElementById('yourAreaRank');
     const areaNameEl = document.getElementById('currentAreaName');
@@ -87,7 +87,7 @@ const LeaderboardModule = {
           <div class="leaderboard-empty">
             <span class="empty-icon">📍</span>
             <p>Set your area to see local leaderboard</p>
-            <button class="btn btn-primary" onclick="window.EcoQuestLeaderboard.openAreaModal()">Set Area</button>
+            <button class="btn btn-primary" onclick="window.EcoVentureLeaderboard.openAreaModal()">Set Area</button>
           </div>
         `;
       }
@@ -97,9 +97,9 @@ const LeaderboardModule = {
     if (areaNameEl) areaNameEl.textContent = auth.userProfile.area;
 
     let data = [];
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
-        data = await window.EcoQuestAuth.getAreaLeaderboard(auth.userProfile.area);
+        data = await window.EcoVentureAuth.getAreaLeaderboard(auth.userProfile.area);
       } catch (error) {
         console.error('Failed to load area leaderboard:', error);
       }
@@ -118,9 +118,9 @@ const LeaderboardModule = {
     const yourRankCard = document.getElementById('yourGlobalRank');
 
     let data = [];
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
-        data = await window.EcoQuestAuth.getGlobalLeaderboard();
+        data = await window.EcoVentureAuth.getGlobalLeaderboard();
       } catch (error) {
         console.error('Failed to load global leaderboard:', error);
       }
@@ -150,7 +150,7 @@ const LeaderboardModule = {
   renderLeaderboard(listEl, data, yourRankCard) {
     if (!listEl) return;
 
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     const currentUserId = auth.authUser?.id || 'current_user';
     const userIndex = data.findIndex(u => u.id === currentUserId);
     const userRank = userIndex !== -1 ? userIndex + 1 : '-';
@@ -188,7 +188,7 @@ const LeaderboardModule = {
     if (areaModal) areaModal.classList.remove('hidden');
 
     // Pre-fill with current values
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     if (auth.userProfile) {
       const areaInput = document.getElementById('areaInput');
       const countryInput = document.getElementById('countryInput');
@@ -211,19 +211,19 @@ const LeaderboardModule = {
     const country = countryInput?.value.trim();
 
     if (!area) {
-      window.EcoQuestUI.showToast('Please enter your area', 'warning');
+      window.EcoVentureUI.showToast('Please enter your area', 'warning');
       return;
     }
 
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured() && auth.authUser) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured() && auth.authUser) {
       try {
-        const updated = await window.EcoQuestAuth.updateUserArea(auth.authUser.id, area, country);
+        const updated = await window.EcoVentureAuth.updateUserArea(auth.authUser.id, area, country);
         auth.userProfile = { ...auth.userProfile, ...updated };
-        window.EcoQuestUI.showToast('Area updated!', 'success');
+        window.EcoVentureUI.showToast('Area updated!', 'success');
       } catch (error) {
-        window.EcoQuestUI.showToast('Failed to update area', 'error');
+        window.EcoVentureUI.showToast('Failed to update area', 'error');
       }
     } else {
       // Demo mode
@@ -231,7 +231,7 @@ const LeaderboardModule = {
         auth.userProfile.area = area;
         auth.userProfile.country = country;
       }
-      window.EcoQuestUI.showToast('Area updated! (Demo)', 'success');
+      window.EcoVentureUI.showToast('Area updated! (Demo)', 'success');
     }
 
     this.closeAreaModal();
@@ -245,4 +245,4 @@ const LeaderboardModule = {
 };
 
 // Export
-window.EcoQuestLeaderboard = LeaderboardModule;
+window.EcoVentureLeaderboard = LeaderboardModule;

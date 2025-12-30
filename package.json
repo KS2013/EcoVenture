@@ -1,5 +1,5 @@
 {
-  "name": "eco-earning",
+  "name": "ecoventure",
   "version": "1.0.6-beta",
   "description": "Mobile and desktop app for recording litter disposal in exchange for reward points",
   "main": "main.js",
@@ -15,8 +15,8 @@
     "android:run": "npx cap run android"
   },
   "build": {
-    "appId": "com.ecoearning.app",
-    "productName": "Eco Earning",
+    "appId": "com.ecoventure.app",
+    "productName": "EcoVenture",
     "directories": {
       "output": "dist"
     },

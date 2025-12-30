@@ -1,5 +1,5 @@
 /**
- * Supabase Configuration for EcoQuest
+ * Supabase Configuration for EcoVenture
  *
  * SETUP INSTRUCTIONS:
  * 1. Go to https://supabase.com and create a free account
@@ -921,7 +921,7 @@ function isSupabaseConfigured() {
 }
 
 // Export functions
-window.EcoQuestAuth = {
+window.EcoVentureAuth = {
   init: initSupabase,
   isConfigured: isSupabaseConfigured,
   signUp,

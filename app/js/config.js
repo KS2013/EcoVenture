@@ -104,5 +104,3 @@ window.EcoVentureConfig = {
   LEVELS
 };
 
-// Backward compatibility alias
-window.EcoQuestConfig = window.EcoVentureConfig;

@@ -1,5 +1,5 @@
 /**
- * Eco Earning - Desktop/Mobile Application
+ * EcoVenture - Desktop/Mobile Application
  * AI Detection with COCO-SSD + Confidence Boosting
  * TrashAI integration (free, no API key needed)
  */
@@ -150,11 +150,11 @@ const elements = {
 
 // Initialize App
 async function init() {
-  console.log('Initializing Eco Earning with Enhanced AI Detection...');
+  console.log('Initializing EcoVenture with Enhanced AI Detection...');
 
   // Initialize Supabase if available
-  if (window.EcoQuestAuth) {
-    window.EcoQuestAuth.init();
+  if (window.EcoVentureAuth) {
+    window.EcoVentureAuth.init();
   }
 
   // Get user data
@@ -162,9 +162,9 @@ async function init() {
     state.userId = await window.electronAPI.getUserId();
     state.userData = await window.electronAPI.getUserData();
   } else {
-    state.userId = localStorage.getItem('ecoquest_user_id') || `user_${Date.now()}`;
-    localStorage.setItem('ecoquest_user_id', state.userId);
-    state.userData = JSON.parse(localStorage.getItem('ecoquest_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0,"redemptionHistory":[]}');
+    state.userId = localStorage.getItem('ecoventure_user_id') || `user_${Date.now()}`;
+    localStorage.setItem('ecoventure_user_id', state.userId);
+    state.userData = JSON.parse(localStorage.getItem('ecoventure_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0,"redemptionHistory":[]}');
   }
 
   setupEventListeners();
@@ -707,14 +707,14 @@ async function analyzeAndSubmit() {
       state.userData.totalPoints += points.points;
       state.userData.lifetimePoints += points.points;
       state.userData.submissions++;
-      localStorage.setItem('ecoquest_userData', JSON.stringify(state.userData));
+      localStorage.setItem('ecoventure_userData', JSON.stringify(state.userData));
     }
 
     // Sync to Supabase if logged in
-    if (state.isLoggedIn && window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (state.isLoggedIn && window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
         // Create submission record (this also updates profile via trigger)
-        await window.EcoQuestAuth.createSubmission(
+        await window.EcoVentureAuth.createSubmission(
           state.authUser.id,
           points.points,
           detectedItems,
@@ -723,7 +723,7 @@ async function analyzeAndSubmit() {
         );
 
         // Refresh profile to get updated totals
-        const updatedProfile = await window.EcoQuestAuth.getUserProfile(state.authUser.id);
+        const updatedProfile = await window.EcoVentureAuth.getUserProfile(state.authUser.id);
         state.userProfile = updatedProfile;
 
         console.log('Points synced to Supabase:', points.points);
@@ -1011,7 +1011,7 @@ window.redeemReward = async function(rewardId, pointsCost) {
       result = { success: false, error: 'Not enough points' };
     } else {
       state.userData.totalPoints -= pointsCost;
-      localStorage.setItem('ecoquest_userData', JSON.stringify(state.userData));
+      localStorage.setItem('ecoventure_userData', JSON.stringify(state.userData));
       result = { success: true, code: generateCode(), remainingPoints: state.userData.totalPoints };
     }
   }
@@ -1306,16 +1306,16 @@ async function handleSignIn() {
   }
 
   // Check if Supabase is configured
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      const data = await window.EcoQuestAuth.signIn(email, password);
+      const data = await window.EcoVentureAuth.signIn(email, password);
       state.authUser = data.user;
       state.isLoggedIn = true;
 
       // Try to get profile, create one if it doesn't exist
       let profile = null;
       try {
-        profile = await window.EcoQuestAuth.getUserProfile(data.user.id);
+        profile = await window.EcoVentureAuth.getUserProfile(data.user.id);
       } catch (profileError) {
         console.log('Profile not found, creating one...');
         // Profile doesn't exist, it will be created on first use
@@ -1375,9 +1375,9 @@ async function handleSignUp() {
   }
 
   // Check if Supabase is configured
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      await window.EcoQuestAuth.signUp(email, password, username, username);
+      await window.EcoVentureAuth.signUp(email, password, username, username);
       showAuthForm('verification');
       showToast('Check your email for verification!', 'success');
     } catch (error) {
@@ -1404,9 +1404,9 @@ async function handleSignUp() {
 }
 
 async function handleSignOut() {
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      await window.EcoQuestAuth.signOut();
+      await window.EcoVentureAuth.signOut();
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -1503,9 +1503,9 @@ async function handleSaveArea() {
     return;
   }
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured() && state.authUser) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured() && state.authUser) {
     try {
-      await window.EcoQuestAuth.updateUserArea(state.authUser.id, area, country);
+      await window.EcoVentureAuth.updateUserArea(state.authUser.id, area, country);
       state.userProfile.area = area;
       state.userProfile.country = country;
     } catch (error) {
@@ -1574,9 +1574,9 @@ async function loadAreaLeaderboard() {
 
   let leaderboardData = [];
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      leaderboardData = await window.EcoQuestAuth.getAreaLeaderboard(state.userProfile.area);
+      leaderboardData = await window.EcoVentureAuth.getAreaLeaderboard(state.userProfile.area);
     } catch (error) {
       console.error('Failed to load area leaderboard:', error);
     }
@@ -1594,9 +1594,9 @@ async function loadGlobalLeaderboard() {
 
   let leaderboardData = [];
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      leaderboardData = await window.EcoQuestAuth.getGlobalLeaderboard();
+      leaderboardData = await window.EcoVentureAuth.getGlobalLeaderboard();
     } catch (error) {
       console.error('Failed to load global leaderboard:', error);
     }
@@ -1823,9 +1823,9 @@ async function handleFriendCodeInput(e) {
   }
 
   // Search for user
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      const user = await window.EcoQuestAuth.getUserByFriendCode(code);
+      const user = await window.EcoVentureAuth.getUserByFriendCode(code);
       if (user && user.id !== state.authUser?.id) {
         foundFriend = user;
         document.getElementById('friendPreviewName').textContent = user.display_name || user.username;
@@ -1863,9 +1863,9 @@ async function handleSendFriendRequest() {
     return;
   }
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      await window.EcoQuestAuth.sendFriendRequest(state.authUser.id, foundFriend.id);
+      await window.EcoVentureAuth.sendFriendRequest(state.authUser.id, foundFriend.id);
       showToast('Friend request sent!', 'success');
       closeAddFriendModal();
     } catch (error) {
@@ -1915,14 +1915,14 @@ async function loadFriendRequests() {
   const receivedList = document.getElementById('receivedRequestsList');
   const sentList = document.getElementById('sentRequestsList');
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
       // Load received requests
-      const received = await window.EcoQuestAuth.getPendingFriendRequests(state.authUser.id);
+      const received = await window.EcoVentureAuth.getPendingFriendRequests(state.authUser.id);
       renderReceivedRequests(received, receivedList);
 
       // Load sent requests
-      const sent = await window.EcoQuestAuth.getSentFriendRequests(state.authUser.id);
+      const sent = await window.EcoVentureAuth.getSentFriendRequests(state.authUser.id);
       renderSentRequests(sent, sentList);
     } catch (error) {
       console.error('Error loading friend requests:', error);
@@ -1982,9 +1982,9 @@ function renderSentRequests(requests, container) {
 }
 
 async function acceptRequest(requestId) {
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      await window.EcoQuestAuth.acceptFriendRequest(requestId);
+      await window.EcoVentureAuth.acceptFriendRequest(requestId);
       showToast('Friend added!', 'success');
       loadFriendRequests();
       updatePendingRequestsBadge();
@@ -1998,9 +1998,9 @@ async function acceptRequest(requestId) {
 }
 
 async function rejectRequest(requestId) {
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      await window.EcoQuestAuth.rejectFriendRequest(requestId);
+      await window.EcoVentureAuth.rejectFriendRequest(requestId);
       showToast('Request declined', 'success');
       loadFriendRequests();
       updatePendingRequestsBadge();
@@ -2033,9 +2033,9 @@ async function loadFriendsLeaderboard() {
 
   let leaderboardData = [];
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      leaderboardData = await window.EcoQuestAuth.getFriendsLeaderboard(state.authUser.id);
+      leaderboardData = await window.EcoVentureAuth.getFriendsLeaderboard(state.authUser.id);
 
       // Update pending requests badge
       updatePendingRequestsBadge();
@@ -2102,9 +2102,9 @@ async function updatePendingRequestsBadge() {
 
   if (!state.isLoggedIn || !banner) return;
 
-  if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+  if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
     try {
-      const count = await window.EcoQuestAuth.getPendingRequestCount(state.authUser.id);
+      const count = await window.EcoVentureAuth.getPendingRequestCount(state.authUser.id);
       if (count > 0) {
         countEl.textContent = count;
         banner.classList.remove('hidden');

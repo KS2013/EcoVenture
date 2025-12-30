@@ -1,5 +1,5 @@
 /**
- * EcoQuest Camera Module
+ * EcoVenture Camera Module
  * Camera initialization and recording functions
  */
 
@@ -125,4 +125,4 @@ const CameraModule = {
 };
 
 // Export
-window.EcoQuestCamera = CameraModule;
+window.EcoVentureCamera = CameraModule;

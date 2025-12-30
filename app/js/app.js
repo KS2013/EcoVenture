@@ -42,8 +42,8 @@ const EcoVentureApp = {
     this.initSupabase();
 
     // Update UI
-    window.EcoQuestUI.updateStats(this.userData);
-    window.EcoQuestRewards.loadRewards();
+    window.EcoVentureUI.updateStats(this.userData);
+    window.EcoVentureRewards.loadRewards();
 
     console.log('EcoVenture initialized!');
   },
@@ -73,24 +73,24 @@ const EcoVentureApp = {
     if (window.electronAPI) {
       window.electronAPI.getUserData().then(data => {
         this.userData = data;
-        window.EcoQuestUI.updateStats(this.userData);
+        window.EcoVentureUI.updateStats(this.userData);
       });
     } else {
-      this.userData = JSON.parse(localStorage.getItem('ecoquest_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0,"redemptionHistory":[]}');
+      this.userData = JSON.parse(localStorage.getItem('ecoventure_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0,"redemptionHistory":[]}');
     }
   },
 
   // Setup listeners
   setupListeners() {
     // Tab navigation
-    window.EcoQuestUI.setupTabNavigation((tab) => {
+    window.EcoVentureUI.setupTabNavigation((tab) => {
       if (tab === 'leaderboard') {
-        window.EcoQuestLeaderboard.loadData();
+        window.EcoVentureLeaderboard.loadData();
       } else if (tab === 'redeem') {
-        window.EcoQuestRewards.updatePointsBalance();
-        window.EcoQuestRewards.loadRedemptionHistory();
+        window.EcoVentureRewards.updatePointsBalance();
+        window.EcoVentureRewards.loadRedemptionHistory();
       } else if (tab === 'cleanups') {
-        window.EcoQuestCleanups.loadData();
+        window.EcoVentureCleanups.loadData();
       }
     });
 
@@ -118,23 +118,23 @@ const EcoVentureApp = {
     }
 
     // Setup module listeners
-    window.EcoQuestAuthUI.setupListeners();
-    window.EcoQuestLeaderboard.setupListeners();
-    window.EcoQuestFriends.setupListeners();
-    window.EcoQuestRewards.setupListeners();
-    window.EcoQuestCleanups.setupListeners();
+    window.EcoVentureAuthUI.setupListeners();
+    window.EcoVentureLeaderboard.setupListeners();
+    window.EcoVentureFriends.setupListeners();
+    window.EcoVentureRewards.setupListeners();
+    window.EcoVentureCleanups.setupListeners();
   },
 
   // Initialize Supabase
   initSupabase() {
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
-      window.EcoQuestAuth.init();
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+      window.EcoVentureAuth.init();
     }
   },
 
   // Initialize camera
   async initCamera() {
-    const success = await window.EcoQuestCamera.initCamera(this.elements.videoPreview);
+    const success = await window.EcoVentureCamera.initCamera(this.elements.videoPreview);
 
     if (success) {
       this.elements.videoOverlay.classList.add('hidden');
@@ -151,9 +151,9 @@ const EcoVentureApp = {
         this.setupCanvasSize();
       };
 
-      window.EcoQuestUI.showToast('Camera ready!', 'success');
+      window.EcoVentureUI.showToast('Camera ready!', 'success');
     } else {
-      window.EcoQuestUI.showToast('Camera access denied', 'error');
+      window.EcoVentureUI.showToast('Camera access denied', 'error');
     }
   },
 
@@ -171,19 +171,19 @@ const EcoVentureApp = {
 
   // Switch camera
   async switchCamera() {
-    await window.EcoQuestCamera.switchCamera(this.elements.videoPreview);
+    await window.EcoVentureCamera.switchCamera(this.elements.videoPreview);
   },
 
   // Load AI model
   async loadModel() {
-    window.EcoQuestUI.showToast('Loading AI model...', 'info');
+    window.EcoVentureUI.showToast('Loading AI model...', 'info');
 
-    this.cocoModel = await window.EcoQuestDetection.loadDetectionModel();
+    this.cocoModel = await window.EcoVentureDetection.loadDetectionModel();
 
     if (this.cocoModel) {
-      window.EcoQuestUI.showToast('AI model ready!', 'success');
+      window.EcoVentureUI.showToast('AI model ready!', 'success');
     } else {
-      window.EcoQuestUI.showToast('AI model failed to load', 'error');
+      window.EcoVentureUI.showToast('AI model failed to load', 'error');
     }
   },
 
@@ -199,7 +199,7 @@ const EcoVentureApp = {
   // Start detection
   startDetection() {
     if (!this.cocoModel) {
-      window.EcoQuestUI.showToast('AI model not loaded', 'warning');
+      window.EcoVentureUI.showToast('AI model not loaded', 'warning');
       return;
     }
 
@@ -246,8 +246,8 @@ const EcoVentureApp = {
   async runDetectionLoop() {
     if (!this.isDetecting || !this.cocoModel) return;
 
-    const { COCO_TRASH_CLASSES, IGNORE_CLASSES, CONFIG } = window.EcoQuestConfig;
-    const Detection = window.EcoQuestDetection;
+    const { COCO_TRASH_CLASSES, IGNORE_CLASSES, CONFIG } = window.EcoVentureConfig;
+    const Detection = window.EcoVentureDetection;
 
     try {
       // Run COCO-SSD detection (local, fast)
@@ -337,7 +337,7 @@ const EcoVentureApp = {
       }
 
       // Update recording stats
-      if (window.EcoQuestCamera.isRecording) {
+      if (window.EcoVentureCamera.isRecording) {
         this.totalFramesAnalyzed++;
         if (allTrashItems.length > 0) this.framesWithTrash++;
         if (personDetected) this.framesWithPerson++;
@@ -350,12 +350,12 @@ const EcoVentureApp = {
     // Schedule next frame
     setTimeout(() => {
       if (this.isDetecting) this.runDetectionLoop();
-    }, window.EcoQuestConfig.CONFIG.DETECTION_INTERVAL);
+    }, window.EcoVentureConfig.CONFIG.DETECTION_INTERVAL);
   },
 
   // Toggle recording
   toggleRecording() {
-    if (window.EcoQuestCamera.isRecording) {
+    if (window.EcoVentureCamera.isRecording) {
       this.stopRecording();
     } else {
       this.startRecording();
@@ -371,7 +371,7 @@ const EcoVentureApp = {
     this.framesWithBin = 0;
     this.binDetected = false;
     this.totalFramesAnalyzed = 0;
-    window.EcoQuestDetection.resetConfidenceTracker();
+    window.EcoVentureDetection.resetConfidenceTracker();
 
     // Start detection if not running
     if (!this.isDetecting) {
@@ -379,7 +379,7 @@ const EcoVentureApp = {
     }
 
     // Start recording
-    const success = window.EcoQuestCamera.startRecording(() => {
+    const success = window.EcoVentureCamera.startRecording(() => {
       this.processRecording();
     });
 
@@ -392,14 +392,14 @@ const EcoVentureApp = {
 
   // Stop recording
   stopRecording() {
-    const duration = window.EcoQuestCamera.getRecordingDuration();
+    const duration = window.EcoVentureCamera.getRecordingDuration();
 
-    if (duration < window.EcoQuestConfig.CONFIG.MIN_RECORDING_TIME) {
-      window.EcoQuestUI.showToast(`Record for at least ${window.EcoQuestConfig.CONFIG.MIN_RECORDING_TIME} seconds`, 'warning');
+    if (duration < window.EcoVentureConfig.CONFIG.MIN_RECORDING_TIME) {
+      window.EcoVentureUI.showToast(`Record for at least ${window.EcoVentureConfig.CONFIG.MIN_RECORDING_TIME} seconds`, 'warning');
       return;
     }
 
-    window.EcoQuestCamera.stopRecording();
+    window.EcoVentureCamera.stopRecording();
     this.elements.recordBtn.classList.remove('recording');
     this.elements.recordingIndicator.classList.add('hidden');
     this.stopRecordingTimer();
@@ -408,10 +408,10 @@ const EcoVentureApp = {
   // Recording timer
   startRecordingTimer() {
     this.recordingTimer = setInterval(() => {
-      const duration = window.EcoQuestCamera.getRecordingDuration();
-      this.elements.recTime.textContent = window.EcoQuestCamera.formatTime(duration);
+      const duration = window.EcoVentureCamera.getRecordingDuration();
+      this.elements.recTime.textContent = window.EcoVentureCamera.formatTime(duration);
 
-      if (duration >= window.EcoQuestConfig.CONFIG.MAX_RECORDING_TIME) {
+      if (duration >= window.EcoVentureConfig.CONFIG.MAX_RECORDING_TIME) {
         this.stopRecording();
       }
     }, 1000);
@@ -446,7 +446,7 @@ const EcoVentureApp = {
     const success = hasTrash && hasBin;
 
     if (success) {
-      const points = window.EcoQuestDetection.calculatePoints(
+      const points = window.EcoVentureDetection.calculatePoints(
         detectedItems,
         trashPercent,
         this.userData.submissions,
@@ -457,13 +457,13 @@ const EcoVentureApp = {
       this.userData.totalPoints += points.points;
       this.userData.lifetimePoints += points.points;
       this.userData.submissions++;
-      localStorage.setItem('ecoquest_userData', JSON.stringify(this.userData));
+      localStorage.setItem('ecoventure_userData', JSON.stringify(this.userData));
 
       // Sync to Supabase
       await this.syncPointsToSupabase(points.points, detectedItems);
 
       this.showResults({ success: true, trashPercent, detectedItems, pointsAwarded: points, binDetected: hasBin });
-      window.EcoQuestUI.updateStats(this.userData);
+      window.EcoVentureUI.updateStats(this.userData);
     } else {
       let errorMsg = 'Verification failed: ';
       if (detectedItems.length === 0) {
@@ -480,11 +480,11 @@ const EcoVentureApp = {
 
   // Sync points to Supabase
   async syncPointsToSupabase(points, detectedItems) {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
-    if (auth.isLoggedIn && window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+    if (auth.isLoggedIn && window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
       try {
-        await window.EcoQuestAuth.createSubmission(
+        await window.EcoVentureAuth.createSubmission(
           auth.authUser.id,
           points,
           detectedItems,
@@ -493,7 +493,7 @@ const EcoVentureApp = {
         );
 
         // Refresh profile
-        const updatedProfile = await window.EcoQuestAuth.getUserProfile(auth.authUser.id);
+        const updatedProfile = await window.EcoVentureAuth.getUserProfile(auth.authUser.id);
         auth.userProfile = updatedProfile;
 
         console.log('Points synced to Supabase:', points);
@@ -584,9 +584,6 @@ const EcoVentureApp = {
 
 // Make globally accessible
 window.EcoVentureApp = EcoVentureApp;
-
-// Backward compatibility alias
-window.EcoQuestApp = EcoVentureApp;
 
 // Initialize when DOM ready
 document.addEventListener('DOMContentLoaded', () => EcoVentureApp.init());

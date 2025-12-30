@@ -1,5 +1,5 @@
 /**
- * EcoQuest Cleanups Module
+ * EcoVenture Cleanups Module
  * Organized cleanup events management
  */
 
@@ -90,7 +90,7 @@ const CleanupsModule = {
 
   // Load cleanup data
   async loadData() {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     if (!auth.isLoggedIn) {
       this.showSignInPrompt();
       return;
@@ -112,7 +112,7 @@ const CleanupsModule = {
       <div class="cleanup-empty">
         <span class="empty-icon">🔐</span>
         <p>Sign in to view and join cleanup events</p>
-        <button class="btn btn-primary" onclick="window.EcoQuestAuthUI.openModal('signin')">Sign In</button>
+        <button class="btn btn-primary" onclick="window.EcoVentureAuthUI.openModal('signin')">Sign In</button>
       </div>
     `;
 
@@ -125,20 +125,20 @@ const CleanupsModule = {
     const listEl = document.getElementById('upcomingCleanupsList');
     if (!listEl) return;
 
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     try {
       let events = [];
 
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
         // Get events in user's area first, then all upcoming
         if (auth.userProfile?.area) {
-          events = await window.EcoQuestAuth.getAreaCleanupEvents(auth.userProfile.area);
+          events = await window.EcoVentureAuth.getAreaCleanupEvents(auth.userProfile.area);
         }
 
         // If no area events, get all upcoming
         if (events.length === 0) {
-          events = await window.EcoQuestAuth.getUpcomingCleanupEvents(20);
+          events = await window.EcoVentureAuth.getUpcomingCleanupEvents(20);
         }
       }
 
@@ -166,15 +166,15 @@ const CleanupsModule = {
     const listEl = document.getElementById('myEventsList');
     if (!listEl) return;
 
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     try {
       let attendingEvents = [];
       let organizedEvents = [];
 
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured() && auth.authUser) {
-        attendingEvents = await window.EcoQuestAuth.getUserCleanupEvents(auth.authUser.id);
-        organizedEvents = await window.EcoQuestAuth.getUserOrganizedEvents(auth.authUser.id);
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured() && auth.authUser) {
+        attendingEvents = await window.EcoVentureAuth.getUserCleanupEvents(auth.authUser.id);
+        organizedEvents = await window.EcoVentureAuth.getUserOrganizedEvents(auth.authUser.id);
       }
 
       this.userEvents = { attending: attendingEvents, organized: organizedEvents };
@@ -255,7 +255,7 @@ const CleanupsModule = {
     const attendeeCount = event.attendee_count || 0;
 
     return `
-      <div class="cleanup-card" onclick="window.EcoQuestCleanups.openEventDetails('${event.id}')">
+      <div class="cleanup-card" onclick="window.EcoVentureCleanups.openEventDetails('${event.id}')">
         <div class="cleanup-card-header">
           <div class="cleanup-date">
             <span class="cleanup-day">${eventDate.getDate()}</span>
@@ -317,9 +317,9 @@ const CleanupsModule = {
 
   // Open create event modal
   openCreateModal() {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     if (!auth.isLoggedIn) {
-      window.EcoQuestUI.showToast('Sign in to create events', 'warning');
+      window.EcoVentureUI.showToast('Sign in to create events', 'warning');
       auth.openModal('signin');
       return;
     }
@@ -348,7 +348,7 @@ const CleanupsModule = {
 
   // Handle create event
   async handleCreateEvent() {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     const title = document.getElementById('cleanupEventTitle')?.value.trim();
     const description = document.getElementById('cleanupEventDescription')?.value.trim();
@@ -358,31 +358,31 @@ const CleanupsModule = {
 
     // Validation
     if (!title) {
-      window.EcoQuestUI.showToast('Please enter an event title', 'warning');
+      window.EcoVentureUI.showToast('Please enter an event title', 'warning');
       return;
     }
     if (!location) {
-      window.EcoQuestUI.showToast('Please enter a location', 'warning');
+      window.EcoVentureUI.showToast('Please enter a location', 'warning');
       return;
     }
     if (!area) {
-      window.EcoQuestUI.showToast('Please enter your area', 'warning');
+      window.EcoVentureUI.showToast('Please enter your area', 'warning');
       return;
     }
     if (!eventDate) {
-      window.EcoQuestUI.showToast('Please select a date and time', 'warning');
+      window.EcoVentureUI.showToast('Please select a date and time', 'warning');
       return;
     }
 
     // Check if date is in the future
     if (new Date(eventDate) <= new Date()) {
-      window.EcoQuestUI.showToast('Event must be scheduled for the future', 'warning');
+      window.EcoVentureUI.showToast('Event must be scheduled for the future', 'warning');
       return;
     }
 
     try {
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured() && auth.authUser) {
-        await window.EcoQuestAuth.createCleanupEvent(
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured() && auth.authUser) {
+        await window.EcoVentureAuth.createCleanupEvent(
           auth.authUser.id,
           title,
           description,
@@ -391,16 +391,16 @@ const CleanupsModule = {
           new Date(eventDate).toISOString()
         );
 
-        window.EcoQuestUI.showToast('Cleanup event created!', 'success');
+        window.EcoVentureUI.showToast('Cleanup event created!', 'success');
         this.closeCreateModal();
         this.loadData();
       } else {
         // Demo mode
-        window.EcoQuestUI.showToast('Event created! (Demo mode)', 'success');
+        window.EcoVentureUI.showToast('Event created! (Demo mode)', 'success');
         this.closeCreateModal();
       }
     } catch (error) {
-      window.EcoQuestUI.showToast(error.message || 'Failed to create event', 'error');
+      window.EcoVentureUI.showToast(error.message || 'Failed to create event', 'error');
     }
   },
 
@@ -410,7 +410,7 @@ const CleanupsModule = {
     const body = document.getElementById('eventDetailsBody');
     if (!modal || !body) return;
 
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     // Find event from cached data
     let event = this.events.find(e => e.id === eventId);
@@ -422,9 +422,9 @@ const CleanupsModule = {
 
     if (!event) {
       // Try to fetch from API
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
         try {
-          event = await window.EcoQuestAuth.getCleanupEvent(eventId);
+          event = await window.EcoVentureAuth.getCleanupEvent(eventId);
         } catch (error) {
           console.error('Failed to load event:', error);
           return;
@@ -440,10 +440,10 @@ const CleanupsModule = {
     let attendeeCount = event.attendee_count || 0;
     let userStatus = null;
 
-    if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured() && auth.authUser) {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured() && auth.authUser) {
       try {
-        attendeeCount = await window.EcoQuestAuth.getEventAttendeeCount(eventId);
-        userStatus = await window.EcoQuestAuth.getUserEventStatus(auth.authUser.id, eventId);
+        attendeeCount = await window.EcoVentureAuth.getEventAttendeeCount(eventId);
+        userStatus = await window.EcoVentureAuth.getUserEventStatus(auth.authUser.id, eventId);
       } catch (e) {
         // Ignore errors for demo
       }
@@ -530,27 +530,27 @@ const CleanupsModule = {
         <div class="event-actions">
           ${isOrganizer ? `
             ${event.status === 'upcoming' ? `
-              <button class="btn btn-secondary btn-large" onclick="window.EcoQuestCleanups.cancelEvent('${event.id}')">
+              <button class="btn btn-secondary btn-large" onclick="window.EcoVentureCleanups.cancelEvent('${event.id}')">
                 Cancel Event
               </button>
             ` : ''}
             ${event.status === 'upcoming' && isHappeningNow ? `
-              <button class="btn btn-primary btn-large" onclick="window.EcoQuestCleanups.completeEvent('${event.id}')">
+              <button class="btn btn-primary btn-large" onclick="window.EcoVentureCleanups.completeEvent('${event.id}')">
                 Mark as Completed
               </button>
             ` : ''}
           ` : `
             ${!isGoing && event.status === 'upcoming' ? `
-              <button class="btn btn-primary btn-large" onclick="window.EcoQuestCleanups.joinEvent('${event.id}')">
+              <button class="btn btn-primary btn-large" onclick="window.EcoVentureCleanups.joinEvent('${event.id}')">
                 I'm Going!
               </button>
             ` : ''}
             ${isGoing && !hasAttended && event.status === 'upcoming' ? `
-              <button class="btn btn-secondary btn-large" onclick="window.EcoQuestCleanups.leaveEvent('${event.id}')">
+              <button class="btn btn-secondary btn-large" onclick="window.EcoVentureCleanups.leaveEvent('${event.id}')">
                 Cancel RSVP
               </button>
               ${isHappeningNow ? `
-                <button class="btn btn-primary btn-large" onclick="window.EcoQuestCleanups.checkIn('${event.id}')">
+                <button class="btn btn-primary btn-large" onclick="window.EcoVentureCleanups.checkIn('${event.id}')">
                   Check In (+${event.bonus_points || 50} pts)
                 </button>
               ` : ''}
@@ -578,115 +578,115 @@ const CleanupsModule = {
 
   // Join an event
   async joinEvent(eventId) {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
     if (!auth.isLoggedIn) {
-      window.EcoQuestUI.showToast('Sign in to join events', 'warning');
+      window.EcoVentureUI.showToast('Sign in to join events', 'warning');
       return;
     }
 
     try {
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
-        await window.EcoQuestAuth.joinCleanupEvent(auth.authUser.id, eventId);
-        window.EcoQuestUI.showToast('You\'re going! See you there!', 'success');
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+        await window.EcoVentureAuth.joinCleanupEvent(auth.authUser.id, eventId);
+        window.EcoVentureUI.showToast('You\'re going! See you there!', 'success');
         this.closeDetailsModal();
         this.loadData();
       } else {
-        window.EcoQuestUI.showToast('Joined! (Demo mode)', 'success');
+        window.EcoVentureUI.showToast('Joined! (Demo mode)', 'success');
         this.closeDetailsModal();
       }
     } catch (error) {
-      window.EcoQuestUI.showToast(error.message || 'Failed to join event', 'error');
+      window.EcoVentureUI.showToast(error.message || 'Failed to join event', 'error');
     }
   },
 
   // Leave an event
   async leaveEvent(eventId) {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     try {
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
-        await window.EcoQuestAuth.leaveCleanupEvent(auth.authUser.id, eventId);
-        window.EcoQuestUI.showToast('RSVP cancelled', 'success');
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+        await window.EcoVentureAuth.leaveCleanupEvent(auth.authUser.id, eventId);
+        window.EcoVentureUI.showToast('RSVP cancelled', 'success');
         this.closeDetailsModal();
         this.loadData();
       } else {
-        window.EcoQuestUI.showToast('Left event (Demo mode)', 'success');
+        window.EcoVentureUI.showToast('Left event (Demo mode)', 'success');
         this.closeDetailsModal();
       }
     } catch (error) {
-      window.EcoQuestUI.showToast(error.message || 'Failed to leave event', 'error');
+      window.EcoVentureUI.showToast(error.message || 'Failed to leave event', 'error');
     }
   },
 
   // Check in to an event
   async checkIn(eventId) {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     try {
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
-        await window.EcoQuestAuth.checkInToCleanupEvent(auth.authUser.id, eventId);
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+        await window.EcoVentureAuth.checkInToCleanupEvent(auth.authUser.id, eventId);
 
         // Award bonus points locally
         const bonusPoints = this.selectedEvent?.bonus_points || this.ATTENDANCE_BONUS;
-        if (window.EcoQuestApp && window.EcoQuestApp.userData) {
-          window.EcoQuestApp.userData.totalPoints += bonusPoints;
-          window.EcoQuestApp.userData.lifetimePoints += bonusPoints;
-          localStorage.setItem('ecoquest_userData', JSON.stringify(window.EcoQuestApp.userData));
-          window.EcoQuestUI.updateStats(window.EcoQuestApp.userData);
+        if (window.EcoVentureApp && window.EcoVentureApp.userData) {
+          window.EcoVentureApp.userData.totalPoints += bonusPoints;
+          window.EcoVentureApp.userData.lifetimePoints += bonusPoints;
+          localStorage.setItem('ecoventure_userData', JSON.stringify(window.EcoVentureApp.userData));
+          window.EcoVentureUI.updateStats(window.EcoVentureApp.userData);
         }
 
-        window.EcoQuestUI.showToast(`Checked in! +${bonusPoints} bonus points!`, 'success');
+        window.EcoVentureUI.showToast(`Checked in! +${bonusPoints} bonus points!`, 'success');
         this.closeDetailsModal();
         this.loadData();
       } else {
-        window.EcoQuestUI.showToast('Checked in! +50 pts (Demo mode)', 'success');
+        window.EcoVentureUI.showToast('Checked in! +50 pts (Demo mode)', 'success');
         this.closeDetailsModal();
       }
     } catch (error) {
-      window.EcoQuestUI.showToast(error.message || 'Failed to check in', 'error');
+      window.EcoVentureUI.showToast(error.message || 'Failed to check in', 'error');
     }
   },
 
   // Cancel an event (organizer only)
   async cancelEvent(eventId) {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     if (!confirm('Are you sure you want to cancel this event?')) return;
 
     try {
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
-        await window.EcoQuestAuth.cancelCleanupEvent(eventId, auth.authUser.id);
-        window.EcoQuestUI.showToast('Event cancelled', 'success');
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+        await window.EcoVentureAuth.cancelCleanupEvent(eventId, auth.authUser.id);
+        window.EcoVentureUI.showToast('Event cancelled', 'success');
         this.closeDetailsModal();
         this.loadData();
       } else {
-        window.EcoQuestUI.showToast('Event cancelled (Demo mode)', 'success');
+        window.EcoVentureUI.showToast('Event cancelled (Demo mode)', 'success');
         this.closeDetailsModal();
       }
     } catch (error) {
-      window.EcoQuestUI.showToast(error.message || 'Failed to cancel event', 'error');
+      window.EcoVentureUI.showToast(error.message || 'Failed to cancel event', 'error');
     }
   },
 
   // Complete an event (organizer only)
   async completeEvent(eventId) {
-    const auth = window.EcoQuestAuthUI;
+    const auth = window.EcoVentureAuthUI;
 
     try {
-      if (window.EcoQuestAuth && window.EcoQuestAuth.isConfigured()) {
-        await window.EcoQuestAuth.completeCleanupEvent(eventId, auth.authUser.id);
-        window.EcoQuestUI.showToast('Event marked as completed!', 'success');
+      if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+        await window.EcoVentureAuth.completeCleanupEvent(eventId, auth.authUser.id);
+        window.EcoVentureUI.showToast('Event marked as completed!', 'success');
         this.closeDetailsModal();
         this.loadData();
       } else {
-        window.EcoQuestUI.showToast('Event completed! (Demo mode)', 'success');
+        window.EcoVentureUI.showToast('Event completed! (Demo mode)', 'success');
         this.closeDetailsModal();
       }
     } catch (error) {
-      window.EcoQuestUI.showToast(error.message || 'Failed to complete event', 'error');
+      window.EcoVentureUI.showToast(error.message || 'Failed to complete event', 'error');
     }
   }
 };
 
 // Export
-window.EcoQuestCleanups = CleanupsModule;
+window.EcoVentureCleanups = CleanupsModule;

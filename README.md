@@ -1,4 +1,4 @@
-# Eco Earning
+# EcoVenture
 
 **Turn Trash Into Rewards** - A cross-platform app that rewards you for cleaning up litter in public places.
 
@@ -107,7 +107,7 @@ npm run android:run
 ## Project Structure
 
 ```
-eco-earning/
+ecoventure/
 ├── main.js              # Electron main process
 ├── preload.js           # Secure bridge between main and renderer
 ├── capacitor.config.ts  # Capacitor configuration

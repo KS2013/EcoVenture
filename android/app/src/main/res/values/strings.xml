@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">EcoQuest</string>
-    <string name="title_activity_main">EcoQuest</string>
-    <string name="package_name">com.ecoquest.app</string>
-    <string name="custom_url_scheme">com.ecoquest.app</string>
+    <string name="app_name">EcoVenture</string>
+    <string name="title_activity_main">EcoVenture</string>
+    <string name="package_name">com.ecoventure.app</string>
+    <string name="custom_url_scheme">com.ecoventure.app</string>
 </resources>

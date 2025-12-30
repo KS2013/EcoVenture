@@ -1,5 +1,5 @@
 /**
- * EcoQuest Rewards Module
+ * EcoVenture Rewards Module
  * Rewards display and redemption
  */
 
@@ -79,7 +79,7 @@ const RewardsModule = {
     }
 
     grid.innerHTML = filtered.map(reward => `
-      <div class="reward-card" onclick="window.EcoQuestRewards.showRewardDetails('${reward.id}')">
+      <div class="reward-card" onclick="window.EcoVentureRewards.showRewardDetails('${reward.id}')">
         <div class="reward-icon">${reward.icon}</div>
         <div class="reward-info">
           <span class="reward-name">${reward.name}</span>
@@ -101,8 +101,8 @@ const RewardsModule = {
 
     // Get user data
     let userPoints = 0;
-    if (window.EcoQuestApp && window.EcoQuestApp.userData) {
-      userPoints = window.EcoQuestApp.userData.totalPoints || 0;
+    if (window.EcoVentureApp && window.EcoVentureApp.userData) {
+      userPoints = window.EcoVentureApp.userData.totalPoints || 0;
     }
 
     const canAfford = userPoints >= reward.points;
@@ -114,7 +114,7 @@ const RewardsModule = {
         <p class="reward-cost">${reward.points} points</p>
         <p class="reward-balance">Your balance: ${userPoints} pts</p>
         ${canAfford ?
-          `<button class="btn btn-primary btn-large" onclick="window.EcoQuestRewards.redeemReward('${reward.id}')">Redeem Now</button>` :
+          `<button class="btn btn-primary btn-large" onclick="window.EcoVentureRewards.redeemReward('${reward.id}')">Redeem Now</button>` :
           `<button class="btn btn-secondary btn-large" disabled>Not enough points</button>
            <p class="reward-needed">Need ${reward.points - userPoints} more points</p>`
         }
@@ -141,9 +141,9 @@ const RewardsModule = {
       result = await window.electronAPI.redeemReward(rewardId);
     } else {
       // Demo mode
-      let userData = window.EcoQuestApp?.userData;
+      let userData = window.EcoVentureApp?.userData;
       if (!userData) {
-        userData = JSON.parse(localStorage.getItem('ecoquest_userData') || '{"totalPoints":0}');
+        userData = JSON.parse(localStorage.getItem('ecoventure_userData') || '{"totalPoints":0}');
       }
 
       if (userData.totalPoints < reward.points) {
@@ -158,8 +158,8 @@ const RewardsModule = {
           code: this.generateCode(),
           redeemedAt: new Date().toISOString()
         });
-        localStorage.setItem('ecoquest_userData', JSON.stringify(userData));
-        if (window.EcoQuestApp) window.EcoQuestApp.userData = userData;
+        localStorage.setItem('ecoventure_userData', JSON.stringify(userData));
+        if (window.EcoVentureApp) window.EcoVentureApp.userData = userData;
 
         result = { success: true, code: userData.redemptionHistory[userData.redemptionHistory.length - 1].code };
       }
@@ -175,20 +175,20 @@ const RewardsModule = {
           <p>Your code:</p>
           <div class="redeem-code">${result.code}</div>
           <p class="redeem-note">Save this code! Check your email for details.</p>
-          <button class="btn btn-primary btn-large" onclick="window.EcoQuestRewards.closeModal()">Done</button>
+          <button class="btn btn-primary btn-large" onclick="window.EcoVentureRewards.closeModal()">Done</button>
         </div>
       `;
 
       // Update UI
       this.updatePointsBalance();
       this.loadRedemptionHistory();
-      if (window.EcoQuestUI && window.EcoQuestApp) {
-        window.EcoQuestUI.updateStats(window.EcoQuestApp.userData);
+      if (window.EcoVentureUI && window.EcoVentureApp) {
+        window.EcoVentureUI.updateStats(window.EcoVentureApp.userData);
       }
 
-      window.EcoQuestUI.showToast('Reward redeemed!', 'success');
+      window.EcoVentureUI.showToast('Reward redeemed!', 'success');
     } else {
-      window.EcoQuestUI.showToast(result.error || 'Redemption failed', 'error');
+      window.EcoVentureUI.showToast(result.error || 'Redemption failed', 'error');
     }
   },
 
@@ -207,8 +207,8 @@ const RewardsModule = {
     const balanceEl = document.getElementById('redeemPointsBalance');
     if (balanceEl) {
       let points = 0;
-      if (window.EcoQuestApp && window.EcoQuestApp.userData) {
-        points = window.EcoQuestApp.userData.totalPoints || 0;
+      if (window.EcoVentureApp && window.EcoVentureApp.userData) {
+        points = window.EcoVentureApp.userData.totalPoints || 0;
       }
       balanceEl.textContent = points;
     }
@@ -220,8 +220,8 @@ const RewardsModule = {
     if (!historyList) return;
 
     let history = [];
-    if (window.EcoQuestApp && window.EcoQuestApp.userData) {
-      history = window.EcoQuestApp.userData.redemptionHistory || [];
+    if (window.EcoVentureApp && window.EcoVentureApp.userData) {
+      history = window.EcoVentureApp.userData.redemptionHistory || [];
     }
 
     if (history.length === 0) {
@@ -250,4 +250,4 @@ const RewardsModule = {
 };
 
 // Export
-window.EcoQuestRewards = RewardsModule;
+window.EcoVentureRewards = RewardsModule;

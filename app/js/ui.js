@@ -1,5 +1,5 @@
 /**
- * EcoQuest UI Module
+ * EcoVenture UI Module
  * UI helpers, navigation, and toast notifications
  */
 
@@ -92,7 +92,7 @@ const UIModule = {
 
   // Get user level
   getLevel(points) {
-    const { LEVELS } = window.EcoQuestConfig;
+    const { LEVELS } = window.EcoVentureConfig;
     for (let i = LEVELS.length - 1; i >= 0; i--) {
       if (points >= LEVELS[i].minPoints) {
         return LEVELS[i];
@@ -103,7 +103,7 @@ const UIModule = {
 
   // Update level progress bar
   updateLevelProgress(points) {
-    const { LEVELS } = window.EcoQuestConfig;
+    const { LEVELS } = window.EcoVentureConfig;
     const currentLevel = document.getElementById('currentLevel');
     const nextLevel = document.getElementById('nextLevel');
     const progressFill = document.getElementById('levelProgressFill');
@@ -153,4 +153,4 @@ const UIModule = {
 };
 
 // Export
-window.EcoQuestUI = UIModule;
+window.EcoVentureUI = UIModule;
