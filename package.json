@@ -12,7 +12,10 @@
     "build:linux": "electron-builder --linux",
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android",
-    "android:run": "npx cap run android"
+    "android:run": "npx cap run android",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:headed": "npx playwright test --headed"
   },
   "build": {
     "appId": "com.ecoventure.app",
@@ -51,7 +54,21 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
-  }
+    "electron-builder": "^24.9.1",
+    "serve": "^14.2.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muiznaveedrana/EcoVenture.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/muiznaveedrana/EcoVenture/issues"
+  },
+  "homepage": "https://github.com/muiznaveedrana/EcoVenture#readme"
 }
