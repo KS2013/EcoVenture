@@ -17,8 +17,18 @@ const ROBOFLOW_CONFIG = {
   // Public API endpoint
   API_URL: 'https://detect.roboflow.com',
 
-  // Best trash detection models (from Roboflow Universe)
+  // Custom model ID (user can set their own)
+  // Format: "project-name/version" from your Roboflow workspace
+  CUSTOM_MODEL_ID: null,
+
+  // Pre-configured models (these require access in your workspace)
   MODELS: {
+    // User's custom model (set via setupCustomModel)
+    CUSTOM: {
+      id: null,
+      name: 'Custom Model',
+      classes: []
+    },
     // TACO Dataset model - best for general litter
     TACO: {
       id: 'taco-trash-annotations-in-context/5',
@@ -40,7 +50,7 @@ const ROBOFLOW_CONFIG = {
   },
 
   // Current active model
-  ACTIVE_MODEL: 'TACO',
+  ACTIVE_MODEL: 'CUSTOM',
 
   // Detection settings
   CONFIDENCE_THRESHOLD: 0.25,
@@ -58,6 +68,31 @@ function setApiKey(key) {
   apiKey = key;
   localStorage.setItem('roboflow_api_key', key);
   console.log('Roboflow API key set successfully');
+}
+
+/**
+ * Set custom model ID
+ * @param {string} modelId - Model ID from your Roboflow workspace (e.g., "my-project/1")
+ */
+function setCustomModelId(modelId) {
+  ROBOFLOW_CONFIG.CUSTOM_MODEL_ID = modelId;
+  ROBOFLOW_CONFIG.MODELS.CUSTOM.id = modelId;
+  ROBOFLOW_CONFIG.ACTIVE_MODEL = 'CUSTOM';
+  localStorage.setItem('roboflow_model_id', modelId);
+  console.log('Roboflow custom model set:', modelId);
+}
+
+/**
+ * Get the stored custom model ID
+ */
+function getCustomModelId() {
+  if (!ROBOFLOW_CONFIG.CUSTOM_MODEL_ID) {
+    ROBOFLOW_CONFIG.CUSTOM_MODEL_ID = localStorage.getItem('roboflow_model_id');
+    if (ROBOFLOW_CONFIG.CUSTOM_MODEL_ID) {
+      ROBOFLOW_CONFIG.MODELS.CUSTOM.id = ROBOFLOW_CONFIG.CUSTOM_MODEL_ID;
+    }
+  }
+  return ROBOFLOW_CONFIG.CUSTOM_MODEL_ID;
 }
 
 /**
@@ -119,12 +154,32 @@ async function detectTrash(imageElement) {
     return [];
   }
 
+  // Get the custom model ID if set
+  const customModelId = getCustomModelId();
+
   try {
-    const model = ROBOFLOW_CONFIG.MODELS[ROBOFLOW_CONFIG.ACTIVE_MODEL];
+    // Use custom model ID if available, otherwise fall back to active model
+    let modelId;
+    let modelName = 'Custom Model';
+
+    if (customModelId) {
+      modelId = customModelId;
+      modelName = 'Custom Model';
+    } else {
+      const model = ROBOFLOW_CONFIG.MODELS[ROBOFLOW_CONFIG.ACTIVE_MODEL];
+      modelId = model?.id;
+      modelName = model?.name || 'Unknown Model';
+    }
+
+    if (!modelId) {
+      console.warn('No Roboflow model configured. Please set up your model ID.');
+      return [];
+    }
+
     const base64Image = imageToBase64(imageElement);
 
     // Build API URL
-    const url = `${ROBOFLOW_CONFIG.API_URL}/${model.id}?api_key=${key}&confidence=${ROBOFLOW_CONFIG.CONFIDENCE_THRESHOLD}&overlap=${ROBOFLOW_CONFIG.OVERLAP_THRESHOLD}`;
+    const url = `${ROBOFLOW_CONFIG.API_URL}/${modelId}?api_key=${key}&confidence=${ROBOFLOW_CONFIG.CONFIDENCE_THRESHOLD}&overlap=${ROBOFLOW_CONFIG.OVERLAP_THRESHOLD}`;
 
     // Make API request
     const response = await fetch(url, {
@@ -154,7 +209,7 @@ async function detectTrash(imageElement) {
         pred.height               // height
       ],
       source: 'Roboflow',
-      model: model.name
+      model: modelName
     }));
 
     console.log(`Roboflow detected ${detections.length} items:`, detections.map(d => `${d.class} (${Math.round(d.score * 100)}%)`).join(', '));
@@ -263,34 +318,61 @@ function mapToTrashNetCategory(roboflowClass) {
  */
 function showSetupDialog() {
   const existingKey = getApiKey();
+  const existingModel = getCustomModelId();
+
+  // Step 1: Get API Key
   const key = prompt(
-    '🔑 Enter your Roboflow PUBLISHABLE API Key\n\n' +
+    '🔑 Step 1: Enter your Roboflow PUBLISHABLE API Key\n\n' +
     '⚠️ Use PUBLISHABLE key (starts with "rf_"), NOT private key!\n\n' +
     'Get your FREE key:\n' +
     '1. Go to roboflow.com and create account\n' +
     '2. Go to Settings > Roboflow API\n' +
-    '3. Copy your PUBLISHABLE API Key (rf_...)\n' +
-    '4. Paste it here\n\n' +
+    '3. Copy your PUBLISHABLE API Key (rf_...)\n\n' +
     'Current key: ' + (existingKey ? existingKey.slice(0, 6) + '****' : 'Not set'),
     existingKey || ''
   );
 
-  if (key && key.trim()) {
-    const trimmedKey = key.trim();
-    // Validate it looks like a publishable key
-    if (!trimmedKey.startsWith('rf_')) {
-      alert('⚠️ Warning: Roboflow publishable keys usually start with "rf_"\n\nMake sure you\'re using the PUBLISHABLE key, not the private key!');
-    }
-    setApiKey(trimmedKey);
-    return true;
+  if (!key || !key.trim()) {
+    return false;
   }
-  return false;
+
+  const trimmedKey = key.trim();
+  if (!trimmedKey.startsWith('rf_')) {
+    alert('⚠️ Warning: Roboflow publishable keys usually start with "rf_"\n\nMake sure you\'re using the PUBLISHABLE key, not the private key!');
+  }
+  setApiKey(trimmedKey);
+
+  // Step 2: Get Model ID
+  const modelId = prompt(
+    '📦 Step 2: Enter your Model ID\n\n' +
+    'This is the model from YOUR Roboflow workspace.\n\n' +
+    'To find it:\n' +
+    '1. Go to your Roboflow project\n' +
+    '2. Go to Deploy > Hosted API\n' +
+    '3. Look for the model ID (e.g., "my-trash-model/1")\n\n' +
+    'Format: project-name/version\n' +
+    'Example: trash-detector/3\n\n' +
+    'Current model: ' + (existingModel || 'Not set'),
+    existingModel || ''
+  );
+
+  if (modelId && modelId.trim()) {
+    const trimmedModelId = modelId.trim();
+    if (!trimmedModelId.includes('/')) {
+      alert('⚠️ Model ID should include version number\n\nFormat: project-name/version\nExample: my-trash-model/1');
+    }
+    setCustomModelId(trimmedModelId);
+  }
+
+  return true;
 }
 
 // Export module
 window.EcoVentureRoboflow = {
   setApiKey,
   getApiKey,
+  setCustomModelId,
+  getCustomModelId,
   isConfigured,
   detectTrash,
   detectTrashThrottled,
@@ -301,11 +383,19 @@ window.EcoVentureRoboflow = {
   config: ROBOFLOW_CONFIG
 };
 
-// Auto-load saved API key
+// Auto-load saved API key and model ID
 document.addEventListener('DOMContentLoaded', () => {
   const savedKey = localStorage.getItem('roboflow_api_key');
   if (savedKey) {
     apiKey = savedKey;
     console.log('Roboflow API key loaded from storage');
+  }
+
+  const savedModelId = localStorage.getItem('roboflow_model_id');
+  if (savedModelId) {
+    ROBOFLOW_CONFIG.CUSTOM_MODEL_ID = savedModelId;
+    ROBOFLOW_CONFIG.MODELS.CUSTOM.id = savedModelId;
+    ROBOFLOW_CONFIG.ACTIVE_MODEL = 'CUSTOM';
+    console.log('Roboflow custom model loaded from storage:', savedModelId);
   }
 });
