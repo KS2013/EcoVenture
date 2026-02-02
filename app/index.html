@@ -528,6 +528,22 @@
               <button class="btn btn-small btn-secondary" id="copyProfileFriendCodeBtn">Copy Code</button>
             </div>
 
+            <!-- AI Settings Card -->
+            <div class="profile-area-card ai-settings-card">
+              <div class="area-header">
+                <span class="area-icon">🤖</span>
+                <span class="area-title">AI Detection Settings</span>
+              </div>
+              <p class="ai-settings-desc">Enable advanced trash detection with Roboflow AI</p>
+              <div class="ai-status" id="aiStatus">
+                <span class="status-dot" id="roboflowStatusDot"></span>
+                <span id="roboflowStatusText">Not configured</span>
+              </div>
+              <button class="btn btn-small btn-primary" id="setupRoboflowBtn">
+                <span>🔑</span> Setup AI Key
+              </button>
+            </div>
+
             <div class="profile-actions">
               <button class="btn btn-secondary btn-large" id="signOutBtn">
                 <span>🚪</span> Sign Out
@@ -782,6 +798,7 @@
   <!-- App Modules -->
   <script src="js/config.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/roboflow.js"></script>
   <script src="js/detection.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/auth.js"></script>

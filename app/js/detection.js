@@ -550,6 +550,28 @@ function calculatePoints(items, trashPercent, submissions, binDetected = false) 
   return { points, breakdown };
 }
 
+// Combined detection using Roboflow (if available) + COCO-SSD fallback
+async function detectWithRoboflow(imageElement) {
+  // Check if Roboflow is configured
+  if (window.EcoVentureRoboflow && window.EcoVentureRoboflow.isConfigured()) {
+    try {
+      const detections = await window.EcoVentureRoboflow.detectTrashThrottled(imageElement);
+      if (detections && detections.length > 0) {
+        console.log('🎯 Roboflow detected trash:', detections.map(d => d.class).join(', '));
+        return detections;
+      }
+    } catch (error) {
+      console.warn('Roboflow detection failed, using fallback:', error.message);
+    }
+  }
+  return null; // Return null to signal fallback to COCO-SSD
+}
+
+// Check if Roboflow is available and configured
+function isRoboflowAvailable() {
+  return window.EcoVentureRoboflow && window.EcoVentureRoboflow.isConfigured();
+}
+
 // Export
 window.EcoVentureDetection = {
   confidenceTracker,
@@ -561,6 +583,8 @@ window.EcoVentureDetection = {
   classifyWithTrashNet,
   drawDetections,
   calculatePoints,
-  isTrashNetAvailable: () => trashNetAvailable
+  detectWithRoboflow,
+  isTrashNetAvailable: () => trashNetAvailable,
+  isRoboflowAvailable
 };
 

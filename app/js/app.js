@@ -123,6 +123,41 @@ const EcoVentureApp = {
     window.EcoVentureFriends.setupListeners();
     window.EcoVentureRewards.setupListeners();
     window.EcoVentureCleanups.setupListeners();
+
+    // Roboflow AI setup button
+    const setupRoboflowBtn = document.getElementById('setupRoboflowBtn');
+    if (setupRoboflowBtn) {
+      setupRoboflowBtn.addEventListener('click', () => this.setupRoboflow());
+    }
+
+    // Update Roboflow status on load
+    this.updateRoboflowStatus();
+  },
+
+  // Setup Roboflow AI
+  setupRoboflow() {
+    if (window.EcoVentureRoboflow) {
+      window.EcoVentureRoboflow.showSetupDialog();
+      this.updateRoboflowStatus();
+    }
+  },
+
+  // Update Roboflow status display
+  updateRoboflowStatus() {
+    const statusDot = document.getElementById('roboflowStatusDot');
+    const statusText = document.getElementById('roboflowStatusText');
+
+    if (!statusDot || !statusText) return;
+
+    if (window.EcoVentureRoboflow && window.EcoVentureRoboflow.isConfigured()) {
+      statusDot.classList.add('active');
+      statusText.textContent = 'AI Detection Active ✓';
+      statusText.style.color = 'var(--success)';
+    } else {
+      statusDot.classList.remove('active');
+      statusText.textContent = 'Not configured - Click to setup';
+      statusText.style.color = 'var(--text-secondary)';
+    }
   },
 
   // Initialize Supabase
@@ -302,6 +337,28 @@ const EcoVentureApp = {
           if (trashNetResult.category !== 'bin') {
             this.detectedItems.add(trashNetResult.class);
           }
+        }
+      }
+
+      // Call Roboflow API for accurate trash detection (throttled to 1/sec)
+      if (Detection.isRoboflowAvailable()) {
+        const roboflowResult = await Detection.detectWithRoboflow(this.elements.videoPreview);
+        if (roboflowResult && roboflowResult.length > 0) {
+          console.log('🎯 Roboflow found:', roboflowResult.map(d => `${d.class}(${Math.round(d.score * 100)}%)`).join(', '));
+
+          // Add to external detections for drawing
+          externalDetections.push(...roboflowResult);
+
+          // Add to detected items for scoring
+          roboflowResult.forEach(item => {
+            this.detectedItems.add(item.class);
+
+            // Map to TrashNet category for classification
+            if (window.EcoVentureRoboflow) {
+              const category = window.EcoVentureRoboflow.mapToTrashNetCategory(item.class);
+              this.detectedItems.add(category);
+            }
+          });
         }
       }
 

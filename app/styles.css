@@ -2544,6 +2544,50 @@ button, input, a, .reward-card, .video-overlay, .stat-card {
   margin-top: 30px;
 }
 
+/* AI Settings Card */
+.ai-settings-card {
+  border: 1px solid var(--primary-glow);
+}
+
+.ai-settings-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.ai-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.status-dot.active {
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+#roboflowStatusText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 /* ========================================
    Auth Modal
    ======================================== */
