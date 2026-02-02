@@ -28,3 +28,8 @@ npm-debug.log*
 # Claude Code settings
 .claude/
 
+
+# Large build files
+APPS/
+APPS.zip
+dist/
