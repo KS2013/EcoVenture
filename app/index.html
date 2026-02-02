@@ -11,6 +11,43 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Supercell-style Loading Screen -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <!-- Animated Background Particles -->
+      <div class="splash-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+      </div>
+
+      <!-- Logo Section -->
+      <div class="splash-logo-container">
+        <div class="splash-glow"></div>
+        <div class="splash-icon">🌱</div>
+        <h1 class="splash-title">EcoVenture</h1>
+        <p class="splash-tagline">Turn Trash Into Rewards</p>
+      </div>
+
+      <!-- Loading Bar -->
+      <div class="splash-loading">
+        <div class="loading-bar-container">
+          <div class="loading-bar" id="loadingBar"></div>
+          <div class="loading-shine"></div>
+        </div>
+        <p class="loading-text" id="loadingText">Loading...</p>
+      </div>
+
+      <!-- Version -->
+      <p class="splash-version">v1.0.6-beta</p>
+    </div>
+  </div>
+
   <div id="app">
     <!-- Header -->
     <header class="header">
@@ -729,6 +766,9 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
   </div>
+
+  <!-- Splash Screen (loads first) -->
+  <script src="js/splash.js"></script>
 
   <!-- External Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
