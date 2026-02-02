@@ -2,6 +2,11 @@
  * EcoVenture Roboflow Integration
  * Uses Roboflow's trained trash detection models for accurate litter detection
  *
+ * IMPORTANT: Use your PUBLISHABLE API key (starts with "rf_")
+ * NOT your private API key!
+ *
+ * Get your free key at: roboflow.com -> Settings -> Roboflow API -> Publishable Key
+ *
  * Models used:
  * - TACO (Trash Annotations in Context) - trained on real-world litter
  * - Trash Detection models from Roboflow Universe
@@ -259,17 +264,24 @@ function mapToTrashNetCategory(roboflowClass) {
 function showSetupDialog() {
   const existingKey = getApiKey();
   const key = prompt(
-    '🔑 Enter your Roboflow API Key\n\n' +
-    'Get your FREE API key:\n' +
+    '🔑 Enter your Roboflow PUBLISHABLE API Key\n\n' +
+    '⚠️ Use PUBLISHABLE key (starts with "rf_"), NOT private key!\n\n' +
+    'Get your FREE key:\n' +
     '1. Go to roboflow.com and create account\n' +
-    '2. Go to Settings > API Keys\n' +
-    '3. Copy your API key and paste here\n\n' +
-    'Current key: ' + (existingKey ? '****' + existingKey.slice(-4) : 'Not set'),
+    '2. Go to Settings > Roboflow API\n' +
+    '3. Copy your PUBLISHABLE API Key (rf_...)\n' +
+    '4. Paste it here\n\n' +
+    'Current key: ' + (existingKey ? existingKey.slice(0, 6) + '****' : 'Not set'),
     existingKey || ''
   );
 
   if (key && key.trim()) {
-    setApiKey(key.trim());
+    const trimmedKey = key.trim();
+    // Validate it looks like a publishable key
+    if (!trimmedKey.startsWith('rf_')) {
+      alert('⚠️ Warning: Roboflow publishable keys usually start with "rf_"\n\nMake sure you\'re using the PUBLISHABLE key, not the private key!');
+    }
+    setApiKey(trimmedKey);
     return true;
   }
   return false;
