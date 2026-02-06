@@ -45,6 +45,17 @@ const EcoVentureApp = {
     window.EcoVentureUI.updateStats(this.userData);
     window.EcoVentureRewards.loadRewards();
 
+    // Initialize gamification modules
+    if (window.EcoVentureInventory) window.EcoVentureInventory.init();
+    if (window.EcoVentureAvatar) window.EcoVentureAvatar.init();
+    if (window.EcoVentureQuests) window.EcoVentureQuests.init();
+    if (window.EcoVentureShop) window.EcoVentureShop.init();
+    if (window.EcoVentureGacha) window.EcoVentureGacha.init();
+    if (window.EcoVentureGambling) window.EcoVentureGambling.init();
+
+    // Update gems display
+    this.updateGemsDisplay();
+
     console.log('EcoVenture initialized!');
   },
 
@@ -70,14 +81,31 @@ const EcoVentureApp = {
 
   // Load user data
   loadUserData() {
+    const defaultUserData = {
+      totalPoints: 0,
+      lifetimePoints: 0,
+      submissions: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      redemptionHistory: [],
+      ecoGems: 0,
+      lifetimeGems: 0
+    };
+
     if (window.electronAPI) {
       window.electronAPI.getUserData().then(data => {
-        this.userData = data;
+        this.userData = { ...defaultUserData, ...data };
         window.EcoVentureUI.updateStats(this.userData);
       });
     } else {
-      this.userData = JSON.parse(localStorage.getItem('ecoventure_userData') || '{"totalPoints":0,"lifetimePoints":0,"submissions":0,"currentStreak":0,"longestStreak":0,"redemptionHistory":[]}');
+      const stored = localStorage.getItem('ecoventure_userData');
+      this.userData = stored ? { ...defaultUserData, ...JSON.parse(stored) } : defaultUserData;
     }
+  },
+
+  // Save user data
+  saveUserData() {
+    localStorage.setItem('ecoventure_userData', JSON.stringify(this.userData));
   },
 
   // Setup listeners
@@ -91,7 +119,49 @@ const EcoVentureApp = {
         window.EcoVentureRewards.loadRedemptionHistory();
       } else if (tab === 'cleanups') {
         window.EcoVentureCleanups.loadData();
+      } else if (tab === 'quests') {
+        if (window.EcoVentureQuests) {
+          window.EcoVentureQuests.renderQuests();
+          window.EcoVentureGacha?.renderBoxInventory();
+        }
+      } else if (tab === 'shop') {
+        if (window.EcoVentureShop) {
+          window.EcoVentureShop.renderShop();
+        }
+      } else if (tab === 'profile') {
+        if (window.EcoVentureAvatar) {
+          window.EcoVentureAvatar.renderAvatarPreview();
+        }
       }
+    });
+
+    // Profile sub-navigation
+    document.querySelectorAll('.profile-sub-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Update active button
+        document.querySelectorAll('.profile-sub-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Show corresponding section
+        const section = btn.dataset.section;
+        document.querySelectorAll('.profile-sub-content').forEach(content => {
+          content.classList.remove('active');
+        });
+
+        const targetSection = document.getElementById(`profile${section.charAt(0).toUpperCase() + section.slice(1)}Section`);
+        if (targetSection) {
+          targetSection.classList.add('active');
+
+          // Initialize section content
+          if (section === 'avatar' && window.EcoVentureAvatar) {
+            window.EcoVentureAvatar.showCustomizer();
+          } else if (section === 'leaderboard') {
+            window.EcoVentureLeaderboard.loadData();
+          } else if (section === 'redeem') {
+            window.EcoVentureRewards.updatePointsBalance();
+          }
+        }
+      });
     });
 
     // Camera controls
@@ -514,13 +584,21 @@ const EcoVentureApp = {
       this.userData.totalPoints += points.points;
       this.userData.lifetimePoints += points.points;
       this.userData.submissions++;
-      localStorage.setItem('ecoventure_userData', JSON.stringify(this.userData));
+      this.saveUserData();
 
       // Sync to Supabase
       await this.syncPointsToSupabase(points.points, detectedItems);
 
+      // Update quest progress
+      if (window.EcoVentureQuests) {
+        window.EcoVentureQuests.onTrashCollected(detectedItems.map(name => ({ class: name })));
+        window.EcoVentureQuests.onPointsEarned(points.points);
+        window.EcoVentureQuests.onStreakUpdated(this.userData.currentStreak);
+      }
+
       this.showResults({ success: true, trashPercent, detectedItems, pointsAwarded: points, binDetected: hasBin });
       window.EcoVentureUI.updateStats(this.userData);
+      this.updateGemsDisplay();
     } else {
       let errorMsg = 'Verification failed: ';
       if (detectedItems.length === 0) {
@@ -636,6 +714,14 @@ const EcoVentureApp = {
     this.elements.resultsSection.classList.add('hidden');
     this.elements.cameraSection.classList.remove('hidden');
     this.elements.progressFill.style.width = '0%';
+  },
+
+  // Update gems display in header
+  updateGemsDisplay() {
+    const gemsEl = document.getElementById('headerGems');
+    if (gemsEl && this.userData) {
+      gemsEl.textContent = `${this.userData.ecoGems || 0}`;
+    }
   }
 };
 

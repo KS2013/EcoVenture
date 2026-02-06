@@ -69,6 +69,7 @@ const UIModule = {
   updateStats(data) {
     const elements = {
       headerPoints: document.getElementById('headerPoints'),
+      headerGems: document.getElementById('headerGems'),
       totalPoints: document.getElementById('totalPoints'),
       submissions: document.getElementById('submissions'),
       streak: document.getElementById('streak'),
@@ -77,6 +78,7 @@ const UIModule = {
     };
 
     if (elements.headerPoints) elements.headerPoints.textContent = `${data.totalPoints} pts`;
+    if (elements.headerGems) elements.headerGems.textContent = `${data.ecoGems || 0}`;
     if (elements.totalPoints) elements.totalPoints.textContent = data.totalPoints;
     if (elements.submissions) elements.submissions.textContent = data.submissions;
     if (elements.streak) elements.streak.textContent = data.currentStreak;
@@ -149,6 +151,56 @@ const UIModule = {
       element = document.getElementById(element);
     }
     if (element) element.classList.toggle(className, force);
+  },
+
+  /**
+   * Show confetti celebration effect
+   * @param {number} count - Number of confetti pieces (default 50)
+   */
+  showConfetti(count = 50) {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+
+    const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'];
+
+    for (let i = 0; i < count; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+      confetti.style.animationDuration = `${2 + Math.random() * 2}s`;
+      container.appendChild(confetti);
+    }
+
+    // Remove container after animation
+    setTimeout(() => container.remove(), 4000);
+  },
+
+  /**
+   * Animate currency update (bump effect)
+   * @param {string} elementId - ID of the element to animate
+   */
+  animateCurrencyUpdate(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    el.classList.remove('currency-updated');
+    // Trigger reflow to restart animation
+    void el.offsetWidth;
+    el.classList.add('currency-updated');
+
+    setTimeout(() => el.classList.remove('currency-updated'), 500);
+  },
+
+  /**
+   * Show a success celebration for rewards
+   * @param {string} message - Message to show
+   */
+  showRewardCelebration(message) {
+    this.showConfetti(30);
+    this.showToast(message, 'success');
   }
 };
 

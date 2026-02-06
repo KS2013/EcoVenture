@@ -55,6 +55,7 @@
         <h1 class="logo">🌱 EcoVenture</h1>
         <div class="header-right">
           <span class="points-badge" id="headerPoints">✨ 0 pts</span>
+          <span class="gems-badge" id="headerGems">💎 0</span>
           <button class="auth-btn" id="authBtn" title="Account">👤</button>
         </div>
       </div>
@@ -92,13 +93,13 @@
           <span class="nav-icon">📅</span>
           <span class="nav-label">Cleanups</span>
         </button>
-        <button class="nav-tab" data-tab="leaderboard">
-          <span class="nav-icon">🏆</span>
-          <span class="nav-label">Leaderboard</span>
+        <button class="nav-tab" data-tab="quests">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Quests</span>
         </button>
-        <button class="nav-tab" data-tab="redeem">
-          <span class="nav-icon">🎁</span>
-          <span class="nav-label">Redeem</span>
+        <button class="nav-tab" data-tab="shop">
+          <span class="nav-icon">🛒</span>
+          <span class="nav-label">Shop</span>
         </button>
         <button class="nav-tab" data-tab="profile">
           <span class="nav-icon">👤</span>
@@ -277,7 +278,73 @@
         </section>
       </div>
 
-      <!-- Tab Content: Leaderboard -->
+      <!-- Tab Content: Quests -->
+      <div class="tab-content" id="questsTab">
+        <section class="quests-section">
+          <!-- Daily Quests -->
+          <div class="quests-header">
+            <h2>🎯 Daily Quests</h2>
+            <div class="quest-timer" id="dailyQuestTimer">
+              <span class="timer-icon">⏱️</span>
+              <span class="timer-text">Resets in --:--:--</span>
+            </div>
+          </div>
+          <div class="quest-list" id="dailyQuestList">
+            <!-- Populated by JavaScript -->
+          </div>
+
+          <!-- Weekly Quests -->
+          <div class="quests-section">
+            <h3>📅 Weekly Challenges</h3>
+            <div class="quest-list" id="weeklyQuestList">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Box Inventory -->
+          <div class="quests-section">
+            <h3>📦 Your Avatar Boxes</h3>
+            <div class="box-inventory" id="boxInventory">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Shop (Supercell Style) -->
+      <div class="tab-content" id="shopTab">
+        <section class="shop-section supercell-shop">
+          <!-- Currency Bar (Sticky) -->
+          <div class="currency-bar sticky-currency">
+            <div class="currency-item points">
+              <span class="currency-icon">✨</span>
+              <span class="currency-value" id="shopPoints">0</span>
+              <span class="currency-label">pts</span>
+              <button class="currency-add" title="Earn more">+</button>
+            </div>
+            <div class="currency-item gems">
+              <span class="currency-icon">💎</span>
+              <span class="currency-value" id="shopGems">0</span>
+              <span class="currency-label">gems</span>
+              <button class="currency-add" onclick="document.getElementById('gemsGrid')?.scrollIntoView({behavior:'smooth'})" title="Get gems">+</button>
+            </div>
+          </div>
+
+          <!-- Shop Content (Rendered by JS) -->
+          <div class="shop-content" id="shopContent">
+            <!-- Starter Pack, Daily Deals, Bundles, Boxes, Gems sections rendered by JS -->
+            <div class="shop-loading">
+              <div class="loading-spinner"></div>
+              <p>Loading shop...</p>
+            </div>
+          </div>
+
+          <!-- Fallback Grid for old structure -->
+          <div class="shop-grid hidden" id="shopGrid"></div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Leaderboard (hidden, moved to profile) -->
       <div class="tab-content" id="leaderboardTab">
         <section class="leaderboard-section">
           <h2>🏆 Leaderboards</h2>
@@ -486,7 +553,19 @@
           <div class="profile-logged-in hidden" id="profileLoggedIn">
             <div class="profile-header">
               <div class="profile-avatar" id="profileAvatar">
-                <span>👤</span>
+                <!-- Mini Avatar Character -->
+                <div class="mini-avatar" id="miniAvatarProfile">
+                  <div class="mini-bg"></div>
+                  <div class="mini-body"></div>
+                  <div class="mini-head"></div>
+                  <div class="mini-hair"></div>
+                  <div class="mini-face">
+                    <div class="mini-eyes"></div>
+                    <div class="mini-mouth"></div>
+                  </div>
+                  <div class="mini-hat"></div>
+                  <div class="mini-accessory"></div>
+                </div>
               </div>
               <div class="profile-info">
                 <h2 class="profile-name" id="profileName">EcoWarrior</h2>
@@ -510,7 +589,17 @@
               </div>
             </div>
 
-            <div class="profile-area-card">
+            <!-- Profile Sub Navigation -->
+            <div class="profile-sub-nav">
+              <button class="profile-sub-btn active" data-section="stats">Stats</button>
+              <button class="profile-sub-btn" data-section="avatar">Avatar</button>
+              <button class="profile-sub-btn" data-section="leaderboard">Leaderboard</button>
+              <button class="profile-sub-btn" data-section="redeem">Redeem</button>
+            </div>
+
+            <!-- Stats Section (default) -->
+            <div class="profile-sub-content active" id="profileStatsSection">
+              <div class="profile-area-card">
               <div class="area-header">
                 <span class="area-icon">📍</span>
                 <span class="area-title">Your Area</span>
@@ -542,6 +631,117 @@
               <button class="btn btn-small btn-primary" id="setupRoboflowBtn">
                 <span>🔑</span> Setup AI Key
               </button>
+            </div>
+            </div><!-- End Stats Section -->
+
+            <!-- Avatar Section -->
+            <div class="profile-sub-content" id="profileAvatarSection">
+              <div class="avatar-customizer" id="avatarCustomizer">
+                <!-- Avatar Preview -->
+                <div class="avatar-preview-container">
+                  <div class="avatar-card" id="avatarPreview">
+                    <!-- Background Layer -->
+                    <div class="avatar-bg" id="avatarBg"></div>
+
+                    <!-- Character -->
+                    <div class="avatar-character">
+                      <!-- Body/Outfit -->
+                      <div class="char-body" id="charBody">
+                        <div class="body-shape"></div>
+                        <div class="body-outfit" id="bodyOutfit"></div>
+                      </div>
+
+                      <!-- Head -->
+                      <div class="char-head" id="charHead">
+                        <div class="head-shape" id="headShape"></div>
+
+                        <!-- Hair (behind head for back hair) -->
+                        <div class="char-hair-back" id="charHairBack"></div>
+
+                        <!-- Face features -->
+                        <div class="char-face">
+                          <div class="char-eyes" id="charEyes">
+                            <div class="eye left"></div>
+                            <div class="eye right"></div>
+                          </div>
+                          <div class="char-mouth" id="charMouth"></div>
+                        </div>
+
+                        <!-- Hair (front) -->
+                        <div class="char-hair" id="charHair"></div>
+
+                        <!-- Accessory (glasses, etc) -->
+                        <div class="char-accessory" id="charAccessory"></div>
+
+                        <!-- Hat/Headwear -->
+                        <div class="char-hat" id="charHat"></div>
+                      </div>
+                    </div>
+
+                    <!-- Frame overlay -->
+                    <div class="avatar-frame" id="avatarFrame"></div>
+
+                    <!-- Effect overlay -->
+                    <div class="avatar-effect" id="avatarEffect"></div>
+                  </div>
+
+                  <div class="avatar-nameplate" id="avatarNameplate">
+                    <span class="nameplate-name" id="avatarNameText">Your Avatar</span>
+                  </div>
+                </div>
+
+                <!-- Item Categories -->
+                <div class="avatar-categories">
+                  <button class="avatar-cat-btn active" data-type="skin">🎨 Skin</button>
+                  <button class="avatar-cat-btn" data-type="hair">💇 Hair</button>
+                  <button class="avatar-cat-btn" data-type="eyes">👁️ Eyes</button>
+                  <button class="avatar-cat-btn" data-type="mouth">👄 Mouth</button>
+                  <button class="avatar-cat-btn" data-type="accessory">👓 Acc</button>
+                  <button class="avatar-cat-btn" data-type="hat">🎩 Hat</button>
+                  <button class="avatar-cat-btn" data-type="outfit">👕 Outfit</button>
+                  <button class="avatar-cat-btn" data-type="background">🖼️ BG</button>
+                  <button class="avatar-cat-btn" data-type="frame">🖼️ Frame</button>
+                  <button class="avatar-cat-btn" data-type="effect">✨ Effect</button>
+                </div>
+
+                <!-- Inventory Grid -->
+                <div class="avatar-inventory" id="avatarInventory">
+                  <!-- Populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Leaderboard Section -->
+            <div class="profile-sub-content" id="profileLeaderboardSection">
+              <h3>🏆 Leaderboards</h3>
+              <div class="leaderboard-toggle">
+                <button class="toggle-btn active" data-leaderboard="area">
+                  <span>📍</span> Area
+                </button>
+                <button class="toggle-btn" data-leaderboard="friends">
+                  <span>👥</span> Friends
+                </button>
+                <button class="toggle-btn" data-leaderboard="global">
+                  <span>🌍</span> Global
+                </button>
+              </div>
+              <div class="leaderboard-list-container" id="profileLeaderboardList">
+                <!-- Populated by JavaScript - reuses existing leaderboard logic -->
+              </div>
+            </div>
+
+            <!-- Redeem Section -->
+            <div class="profile-sub-content" id="profileRedeemSection">
+              <div class="points-balance-card">
+                <div class="balance-icon">💰</div>
+                <div class="balance-info">
+                  <span class="balance-label">Available Points</span>
+                  <span class="balance-value" id="profileRedeemPoints">0</span>
+                </div>
+              </div>
+              <div class="rewards-grid" id="profileRewardsGrid">
+                <!-- Populated by JavaScript - reuses existing rewards logic -->
+              </div>
             </div>
 
             <div class="profile-actions">
@@ -779,6 +979,37 @@
       </div>
     </div>
 
+    <!-- Box Opening Modal -->
+    <div class="modal hidden" id="boxOpenModal">
+      <div class="modal-content box-open-modal">
+        <!-- Box Animation Container -->
+        <div class="box-animation-container" id="boxAnimationContainer">
+          <div class="box-3d" id="box3d">
+            <div class="box-lid">📦</div>
+            <div class="box-base"></div>
+            <div class="box-glow"></div>
+          </div>
+
+          <!-- Reveal Container -->
+          <div class="item-reveal hidden" id="itemReveal">
+            <div class="reveal-glow" id="revealGlow"></div>
+            <div class="reveal-item" id="revealItem">👤</div>
+            <div class="reveal-info">
+              <span class="reveal-rarity" id="revealRarity">COMMON</span>
+              <h3 class="reveal-name" id="revealName">Item Name</h3>
+              <p class="reveal-description" id="revealDesc">Item description</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="box-actions hidden" id="boxActions">
+          <button class="btn btn-primary btn-large" id="openAnotherBtn">Open Another</button>
+          <button class="btn btn-secondary btn-large" id="closeBoxBtn">Done</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
   </div>
@@ -806,6 +1037,14 @@
   <script src="js/friends.js"></script>
   <script src="js/rewards.js"></script>
   <script src="js/cleanups.js"></script>
+
+  <!-- Gamification Modules -->
+  <script src="js/inventory.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/quests.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/gacha.js"></script>
+  <script src="js/gambling.js"></script>
 
   <!-- Main App -->
   <script src="js/app.js"></script>

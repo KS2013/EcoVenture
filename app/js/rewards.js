@@ -140,13 +140,11 @@ const RewardsModule = {
     if (window.electronAPI) {
       result = await window.electronAPI.redeemReward(rewardId);
     } else {
-      // Demo mode
-      let userData = window.EcoVentureApp?.userData;
+      // Demo mode - always use app userData to preserve all fields (including gems)
+      const userData = window.EcoVentureApp?.userData;
       if (!userData) {
-        userData = JSON.parse(localStorage.getItem('ecoventure_userData') || '{"totalPoints":0}');
-      }
-
-      if (userData.totalPoints < reward.points) {
+        result = { success: false, error: 'App not initialized' };
+      } else if (userData.totalPoints < reward.points) {
         result = { success: false, error: 'Not enough points' };
       } else {
         userData.totalPoints -= reward.points;
@@ -158,9 +156,8 @@ const RewardsModule = {
           code: this.generateCode(),
           redeemedAt: new Date().toISOString()
         });
-        localStorage.setItem('ecoventure_userData', JSON.stringify(userData));
-        if (window.EcoVentureApp) window.EcoVentureApp.userData = userData;
-
+        // Use app's save function to preserve all data including gems
+        window.EcoVentureApp.saveUserData();
         result = { success: true, code: userData.redemptionHistory[userData.redemptionHistory.length - 1].code };
       }
     }

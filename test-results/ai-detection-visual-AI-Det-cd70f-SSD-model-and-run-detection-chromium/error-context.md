@@ -77,11 +77,4 @@
           - generic [ref=e78]: Eco Beginner
           - generic [ref=e79]: "Next: Litter Picker"
     - text: 💡
-  - generic:
-    - generic [ref=e81]:
-      - generic [ref=e82]: ✗
-      - generic [ref=e83]: Camera access denied
-    - generic [ref=e84]:
-      - generic [ref=e85]: ℹ
-      - generic [ref=e86]: Loading AI model...
 ```
