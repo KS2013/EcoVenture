@@ -4165,6 +4165,56 @@ button, input, a, .reward-card, .video-overlay, .stat-card {
    SUPERCELL-STYLE SHOP
    ======================================== */
 
+/* Locked Overlays (Shop & Quests) */
+.shop-locked-overlay,
+.quests-locked-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px 20px;
+}
+
+.shop-locked-overlay.hidden,
+.quests-locked-overlay.hidden {
+  display: none;
+}
+
+.shop-locked-content,
+.quests-locked-content {
+  text-align: center;
+  max-width: 320px;
+}
+
+.shop-locked-icon,
+.quests-locked-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.shop-locked-content h3,
+.quests-locked-content h3 {
+  color: var(--text-primary, #fff);
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.shop-locked-content p,
+.quests-locked-content p {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.shop-locked-content .btn-primary,
+.quests-locked-content .btn-primary {
+  padding: 12px 40px;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+
 .supercell-shop {
   background: linear-gradient(180deg, var(--bg-primary) 0%, #0a0a1a 100%);
   min-height: 100vh;
@@ -9529,8 +9579,8 @@ button, input, a, .reward-card, .video-overlay, .stat-card {
 }
 
 @keyframes avatarFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-5px); }
 }
 
 /* Avatar category buttons enhanced */

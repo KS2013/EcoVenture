@@ -585,9 +585,26 @@ const ShopModule = {
    * Render shop UI
    */
   renderShop() {
+    const overlay = document.getElementById('shopLockedOverlay');
+    const container = document.getElementById('shopContent');
+    const currencyBar = document.querySelector('.sticky-currency');
+    const isLoggedIn = window.EcoVentureAuthUI?.isLoggedIn || false;
+
+    if (!isLoggedIn) {
+      // Show locked overlay, hide shop content
+      if (overlay) overlay.classList.remove('hidden');
+      if (container) container.classList.add('hidden');
+      if (currencyBar) currencyBar.classList.add('hidden');
+      return;
+    }
+
+    // Logged in - hide overlay, show shop
+    if (overlay) overlay.classList.add('hidden');
+    if (container) container.classList.remove('hidden');
+    if (currencyBar) currencyBar.classList.remove('hidden');
+
     this.updateCurrencyDisplay();
 
-    const container = document.getElementById('shopContent');
     if (!container) {
       // Fallback to old grid
       this.renderOldShop();

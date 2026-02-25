@@ -4,7 +4,10 @@ const { test, expect } = require('@playwright/test');
 test.describe('Rewards & Redemption System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:3000');
-    await page.evaluate(() => switchTab('redeem'));
+    await page.evaluate(() => {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('redeemTab').classList.add('active');
+    });
   });
 
   test.describe('Redeem Tab UI', () => {
@@ -17,11 +20,11 @@ test.describe('Rewards & Redemption System', () => {
     });
 
     test('should have rewards grid', async ({ page }) => {
-      await expect(page.locator('.rewards-grid, #rewardsGrid')).toBeAttached();
+      await expect(page.locator('#redeemTab .rewards-grid, #redeemTab #rewardsGrid')).toBeAttached();
     });
 
     test('should have points balance card', async ({ page }) => {
-      await expect(page.locator('.points-balance-card')).toBeVisible();
+      await expect(page.locator('#redeemTab .points-balance-card')).toBeVisible();
     });
 
     test('should show available points', async ({ page }) => {

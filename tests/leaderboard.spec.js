@@ -4,7 +4,10 @@ const { test, expect } = require('@playwright/test');
 test.describe('Leaderboard System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:3000');
-    await page.evaluate(() => switchTab('leaderboard'));
+    await page.evaluate(() => {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('leaderboardTab').classList.add('active');
+    });
   });
 
   test.describe('Leaderboard UI', () => {
@@ -17,41 +20,41 @@ test.describe('Leaderboard System', () => {
     });
 
     test('should have toggle buttons', async ({ page }) => {
-      await expect(page.locator('.leaderboard-toggle')).toBeVisible();
+      await expect(page.locator('#leaderboardTab .leaderboard-toggle')).toBeVisible();
     });
 
     test('should have area leaderboard option', async ({ page }) => {
-      await expect(page.locator('[data-leaderboard="area"]')).toBeVisible();
+      await expect(page.locator('#leaderboardTab [data-leaderboard="area"]')).toBeVisible();
     });
 
     test('should have friends leaderboard option', async ({ page }) => {
-      await expect(page.locator('[data-leaderboard="friends"]')).toBeVisible();
+      await expect(page.locator('#leaderboardTab [data-leaderboard="friends"]')).toBeVisible();
     });
 
     test('should have global leaderboard option', async ({ page }) => {
-      await expect(page.locator('[data-leaderboard="global"]')).toBeVisible();
+      await expect(page.locator('#leaderboardTab [data-leaderboard="global"]')).toBeVisible();
     });
   });
 
   test.describe('Leaderboard Toggle', () => {
     test('area should be active by default', async ({ page }) => {
-      await expect(page.locator('[data-leaderboard="area"]')).toHaveClass(/active/);
+      await expect(page.locator('#leaderboardTab [data-leaderboard="area"]')).toHaveClass(/active/);
     });
 
     test('clicking friends should switch view', async ({ page }) => {
-      await page.click('[data-leaderboard="friends"]');
-      await expect(page.locator('[data-leaderboard="friends"]')).toHaveClass(/active/);
+      await page.click('#leaderboardTab [data-leaderboard="friends"]');
+      await expect(page.locator('#leaderboardTab [data-leaderboard="friends"]')).toHaveClass(/active/);
     });
 
     test('clicking global should switch view', async ({ page }) => {
-      await page.click('[data-leaderboard="global"]');
-      await expect(page.locator('[data-leaderboard="global"]')).toHaveClass(/active/);
+      await page.click('#leaderboardTab [data-leaderboard="global"]');
+      await expect(page.locator('#leaderboardTab [data-leaderboard="global"]')).toHaveClass(/active/);
     });
 
     test('clicking area after other should switch back', async ({ page }) => {
-      await page.click('[data-leaderboard="friends"]');
-      await page.click('[data-leaderboard="area"]');
-      await expect(page.locator('[data-leaderboard="area"]')).toHaveClass(/active/);
+      await page.click('#leaderboardTab [data-leaderboard="friends"]');
+      await page.click('#leaderboardTab [data-leaderboard="area"]');
+      await expect(page.locator('#leaderboardTab [data-leaderboard="area"]')).toHaveClass(/active/);
     });
   });
 
@@ -75,7 +78,7 @@ test.describe('Leaderboard System', () => {
 
   test.describe('Friends Leaderboard', () => {
     test.beforeEach(async ({ page }) => {
-      await page.click('[data-leaderboard="friends"]');
+      await page.click('#leaderboardTab [data-leaderboard="friends"]');
     });
 
     test('should have friends leaderboard container', async ({ page }) => {
@@ -97,7 +100,7 @@ test.describe('Leaderboard System', () => {
 
   test.describe('Global Leaderboard', () => {
     test.beforeEach(async ({ page }) => {
-      await page.click('[data-leaderboard="global"]');
+      await page.click('#leaderboardTab [data-leaderboard="global"]');
     });
 
     test('should have global leaderboard container', async ({ page }) => {

@@ -58,6 +58,14 @@ const AuthModule = {
     if (leaderboardSignInBtn) leaderboardSignInBtn.addEventListener('click', () => this.openModal('signin'));
     if (globalSignInBtn) globalSignInBtn.addEventListener('click', () => this.openModal('signin'));
 
+    // Shop sign in button
+    const shopSignInBtn = document.getElementById('shopSignInBtn');
+    if (shopSignInBtn) shopSignInBtn.addEventListener('click', () => this.openModal('signin'));
+
+    // Quests sign in button
+    const questsSignInBtn = document.getElementById('questsSignInBtn');
+    if (questsSignInBtn) questsSignInBtn.addEventListener('click', () => this.openModal('signin'));
+
     // Initialize Supabase auth listener
     this.initSupabaseListener();
   },
@@ -275,6 +283,10 @@ const AuthModule = {
       if (profileLoggedOut) profileLoggedOut.classList.remove('hidden');
       if (profileLoggedIn) profileLoggedIn.classList.add('hidden');
     }
+
+    // Refresh shop and quests auth state
+    if (window.EcoVentureShop) window.EcoVentureShop.renderShop();
+    if (window.EcoVentureQuests) window.EcoVentureQuests.renderQuests();
   },
 
   // Update profile section

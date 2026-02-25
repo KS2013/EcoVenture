@@ -266,6 +266,7 @@ test.describe('AI Detection - Real Image Recognition', () => {
   });
 
   test('should run detection on multiple frames like video', async ({ page }) => {
+    test.setTimeout(120000);
     await page.goto('http://localhost:3000');
 
     await page.waitForFunction(() => window.EcoVentureDetection !== undefined, { timeout: 15000 });

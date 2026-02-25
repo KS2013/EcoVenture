@@ -280,7 +280,17 @@
 
       <!-- Tab Content: Quests -->
       <div class="tab-content" id="questsTab">
-        <section class="quests-section">
+        <!-- Quests Login Required Overlay -->
+        <div class="quests-locked-overlay" id="questsLockedOverlay">
+          <div class="quests-locked-content">
+            <span class="quests-locked-icon">🔒</span>
+            <h3>Sign in to access Quests</h3>
+            <p>Create an account or sign in to complete daily and weekly quests</p>
+            <button class="btn btn-primary" id="questsSignInBtn">Sign In</button>
+          </div>
+        </div>
+
+        <section class="quests-section" id="questsSectionContent">
           <!-- Daily Quests -->
           <div class="quests-header">
             <h2>🎯 Daily Quests</h2>
@@ -327,6 +337,16 @@
               <span class="currency-value" id="shopGems">0</span>
               <span class="currency-label">gems</span>
               <button class="currency-add" onclick="document.getElementById('gemsGrid')?.scrollIntoView({behavior:'smooth'})" title="Get gems">+</button>
+            </div>
+          </div>
+
+          <!-- Shop Login Required Overlay -->
+          <div class="shop-locked-overlay" id="shopLockedOverlay">
+            <div class="shop-locked-content">
+              <span class="shop-locked-icon">🔒</span>
+              <h3>Sign in to access the Shop</h3>
+              <p>Create an account or sign in to browse and purchase items</p>
+              <button class="btn btn-primary" id="shopSignInBtn">Sign In</button>
             </div>
           </div>
 

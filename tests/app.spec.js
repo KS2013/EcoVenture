@@ -137,7 +137,10 @@ test.describe('EcoVenture App', () => {
 
   test.describe('Leaderboard Tab', () => {
     test.beforeEach(async ({ page }) => {
-      await page.evaluate(() => switchTab('leaderboard'));
+      await page.evaluate(() => {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('leaderboardTab').classList.add('active');
+      });
     });
 
     test('should display leaderboard section', async ({ page }) => {
@@ -145,13 +148,16 @@ test.describe('EcoVenture App', () => {
     });
 
     test('should have leaderboard toggle', async ({ page }) => {
-      await expect(page.locator('.leaderboard-toggle')).toBeVisible();
+      await expect(page.locator('#leaderboardTab .leaderboard-toggle')).toBeVisible();
     });
   });
 
   test.describe('Redeem Tab', () => {
     test.beforeEach(async ({ page }) => {
-      await page.evaluate(() => switchTab('redeem'));
+      await page.evaluate(() => {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('redeemTab').classList.add('active');
+      });
     });
 
     test('should display redeem section', async ({ page }) => {

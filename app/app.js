@@ -1215,6 +1215,10 @@ function setupAuthListeners() {
   if (leaderboardSignInBtn) leaderboardSignInBtn.addEventListener('click', () => openAuthModal('signin'));
   if (globalSignInBtn) globalSignInBtn.addEventListener('click', () => openAuthModal('signin'));
 
+  // Shop sign in button
+  const shopSignInBtn = document.getElementById('shopSignInBtn');
+  if (shopSignInBtn) shopSignInBtn.addEventListener('click', () => openAuthModal('signin'));
+
   // Modal controls
   const authModalClose = document.getElementById('authModalClose');
   if (authModalClose) {
@@ -1333,6 +1337,7 @@ async function handleSignIn() {
       }
       state.userProfile = profile;
 
+      syncAuthToModules();
       closeAuthModal();
       updateAuthUI();
       showToast('Welcome back!', 'success');
@@ -1353,6 +1358,7 @@ async function handleSignIn() {
       country: null
     };
 
+    syncAuthToModules();
     closeAuthModal();
     updateAuthUI();
     showToast('Demo mode: Signed in!', 'success');
@@ -1397,6 +1403,7 @@ async function handleSignUp() {
       country: null
     };
 
+    syncAuthToModules();
     closeAuthModal();
     updateAuthUI();
     showToast('Demo mode: Account created!', 'success');
@@ -1416,9 +1423,20 @@ async function handleSignOut() {
   state.authUser = null;
   state.userProfile = null;
 
+  syncAuthToModules();
   updateAuthUI();
   showToast('Signed out', 'success');
   switchTab('home');
+}
+
+// Sync auth state from app.js to other modules (AuthUI, etc.)
+function syncAuthToModules() {
+  const authUI = window.EcoVentureAuthUI;
+  if (authUI) {
+    authUI.isLoggedIn = state.isLoggedIn;
+    authUI.authUser = state.authUser;
+    authUI.userProfile = state.userProfile;
+  }
 }
 
 function updateAuthUI() {
@@ -1439,6 +1457,11 @@ function updateAuthUI() {
     if (authBtn) authBtn.classList.remove('logged-in');
     if (profileLoggedOut) profileLoggedOut.classList.remove('hidden');
     if (profileLoggedIn) profileLoggedIn.classList.add('hidden');
+  }
+
+  // Refresh shop auth state
+  if (window.EcoVentureShop) {
+    window.EcoVentureShop.renderShop();
   }
 }
 
@@ -1663,6 +1686,107 @@ function renderLeaderboard(listEl, data, yourRankCard, type) {
   // Render list (top 10)
   const topUsers = data.slice(0, 10);
   listEl.innerHTML = topUsers.map((user, index) => {
+    const rank = index + 1;
+    const isCurrentUser = user.id === currentUserId;
+    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+
+    return `
+      <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+        <div class="leaderboard-rank ${rankClass}">${rank}</div>
+        <div class="leaderboard-user">
+          <span class="leaderboard-username">${user.display_name || user.username}${isCurrentUser ? ' (You)' : ''}</span>
+          <span class="leaderboard-stats">${user.submissions} cleanups • ${user.current_streak} day streak</span>
+        </div>
+        <div class="leaderboard-points">${user.total_points}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ========================================
+// Profile Leaderboard (inside profile tab)
+// ========================================
+
+async function loadProfileLeaderboard() {
+  const container = document.getElementById('profileLeaderboardList');
+  if (!container) return;
+
+  if (!state.isLoggedIn) {
+    container.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">🔐</span>
+        <p>Sign in to see leaderboards</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Determine which leaderboard type is active in profile section
+  const activeBtn = document.querySelector('#profileLeaderboardSection .toggle-btn.active');
+  const type = activeBtn?.dataset?.leaderboard || 'area';
+
+  let leaderboardData = [];
+
+  if (type === 'area') {
+    if (!state.userProfile?.area) {
+      container.innerHTML = `
+        <div class="leaderboard-empty">
+          <span class="empty-icon">📍</span>
+          <p>Set your area to see local rankings</p>
+          <button class="btn btn-primary" onclick="openAreaModal()">Set Area</button>
+        </div>
+      `;
+      return;
+    }
+
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+      try {
+        leaderboardData = await window.EcoVentureAuth.getAreaLeaderboard(state.userProfile.area);
+      } catch (e) { console.error(e); }
+    }
+    if (leaderboardData.length === 0) leaderboardData = generateDemoLeaderboard(state.userProfile.area);
+
+  } else if (type === 'global') {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+      try {
+        leaderboardData = await window.EcoVentureAuth.getGlobalLeaderboard();
+      } catch (e) { console.error(e); }
+    }
+    if (leaderboardData.length === 0) leaderboardData = generateDemoLeaderboard('Global');
+
+  } else if (type === 'friends') {
+    if (window.EcoVentureFriends) {
+      await window.EcoVentureFriends.loadLeaderboard();
+      return; // Friends module renders its own content
+    }
+    container.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">👥</span>
+        <p>Add friends to see their rankings</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Render into profile container
+  renderProfileLeaderboard(container, leaderboardData);
+}
+
+function renderProfileLeaderboard(container, data) {
+  if (!data || data.length === 0) {
+    container.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">📊</span>
+        <p>No data yet. Be the first!</p>
+      </div>
+    `;
+    return;
+  }
+
+  const currentUserId = state.authUser?.id || 'current_user';
+  const topUsers = data.slice(0, 10);
+
+  container.innerHTML = topUsers.map((user, index) => {
     const rank = index + 1;
     const isCurrentUser = user.id === currentUserId;
     const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';

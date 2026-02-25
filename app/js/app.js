@@ -156,7 +156,7 @@ const EcoVentureApp = {
           if (section === 'avatar' && window.EcoVentureAvatar) {
             window.EcoVentureAvatar.showCustomizer();
           } else if (section === 'leaderboard') {
-            window.EcoVentureLeaderboard.loadData();
+            loadProfileLeaderboard();
           } else if (section === 'redeem') {
             window.EcoVentureRewards.updatePointsBalance();
           }
@@ -193,6 +193,15 @@ const EcoVentureApp = {
     window.EcoVentureFriends.setupListeners();
     window.EcoVentureRewards.setupListeners();
     window.EcoVentureCleanups.setupListeners();
+
+    // Profile leaderboard toggle buttons
+    document.querySelectorAll('#profileLeaderboardSection .toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#profileLeaderboardSection .toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadProfileLeaderboard();
+      });
+    });
 
     // Roboflow AI setup button
     const setupRoboflowBtn = document.getElementById('setupRoboflowBtn');
@@ -725,8 +734,106 @@ const EcoVentureApp = {
   }
 };
 
+// Profile leaderboard - renders into the profile sub-section container
+async function loadProfileLeaderboard() {
+  const container = document.getElementById('profileLeaderboardList');
+  if (!container) return;
+
+  const auth = window.EcoVentureAuthUI;
+  if (!auth || !auth.isLoggedIn) {
+    container.innerHTML = `
+      <div class="leaderboard-empty">
+        <span class="empty-icon">🔐</span>
+        <p>Sign in to see leaderboards</p>
+      </div>
+    `;
+    return;
+  }
+
+  const activeBtn = document.querySelector('#profileLeaderboardSection .toggle-btn.active');
+  const type = activeBtn?.dataset?.leaderboard || 'area';
+
+  if (type === 'friends') {
+    // Render friends leaderboard into profile container
+    if (window.EcoVentureFriends) {
+      await window.EcoVentureFriends.loadLeaderboard();
+      // Copy friends content into profile container
+      const friendsList = document.getElementById('friendsLeaderboardList');
+      if (friendsList && container) {
+        container.innerHTML = friendsList.innerHTML;
+      }
+    }
+    return;
+  }
+
+  let data = [];
+  const userData = EcoVentureApp.userData;
+
+  if (type === 'area') {
+    if (!auth.userProfile?.area) {
+      container.innerHTML = `
+        <div class="leaderboard-empty">
+          <span class="empty-icon">📍</span>
+          <p>Set your area to see local rankings</p>
+          <button class="btn btn-primary" onclick="window.EcoVentureLeaderboard.openAreaModal()">Set Area</button>
+        </div>
+      `;
+      return;
+    }
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+      try { data = await window.EcoVentureAuth.getAreaLeaderboard(auth.userProfile.area); } catch(e) {}
+    }
+  } else if (type === 'global') {
+    if (window.EcoVentureAuth && window.EcoVentureAuth.isConfigured()) {
+      try { data = await window.EcoVentureAuth.getGlobalLeaderboard(); } catch(e) {}
+    }
+  }
+
+  // Generate demo data if empty
+  if (data.length === 0) {
+    const names = ['EcoHero', 'GreenWarrior', 'TrashBuster', 'PlanetSaver', 'CleanChamp', 'EcoNinja'];
+    data = names.map((name, i) => ({
+      id: `demo_${i}`, username: name, display_name: name,
+      total_points: Math.floor(Math.random() * 2000) + 500,
+      submissions: Math.floor(Math.random() * 50) + 5,
+      current_streak: Math.floor(Math.random() * 10)
+    }));
+    if (auth.userProfile) {
+      data.push({
+        id: auth.authUser?.id || 'current_user',
+        username: auth.userProfile.username,
+        display_name: auth.userProfile.display_name,
+        total_points: userData?.totalPoints || 0,
+        submissions: userData?.submissions || 0,
+        current_streak: userData?.currentStreak || 0
+      });
+    }
+    data.sort((a, b) => b.total_points - a.total_points);
+  }
+
+  // Render
+  const currentUserId = auth.authUser?.id || 'current_user';
+  const topUsers = data.slice(0, 10);
+  container.innerHTML = topUsers.map((user, index) => {
+    const rank = index + 1;
+    const isCurrentUser = user.id === currentUserId;
+    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+    return `
+      <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+        <div class="leaderboard-rank ${rankClass}">${rank}</div>
+        <div class="leaderboard-user">
+          <span class="leaderboard-username">${user.display_name || user.username}${isCurrentUser ? ' (You)' : ''}</span>
+          <span class="leaderboard-stats">${user.submissions} cleanups</span>
+        </div>
+        <div class="leaderboard-points">${user.total_points}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 // Make globally accessible
 window.EcoVentureApp = EcoVentureApp;
+window.loadProfileLeaderboard = loadProfileLeaderboard;
 
 // Initialize when DOM ready
 document.addEventListener('DOMContentLoaded', () => EcoVentureApp.init());

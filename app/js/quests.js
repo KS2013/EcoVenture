@@ -347,6 +347,19 @@ const QuestsModule = {
    * Render quests UI
    */
   renderQuests() {
+    const overlay = document.getElementById('questsLockedOverlay');
+    const content = document.getElementById('questsSectionContent');
+    const isLoggedIn = window.EcoVentureAuthUI?.isLoggedIn || false;
+
+    if (!isLoggedIn) {
+      if (overlay) overlay.classList.remove('hidden');
+      if (content) content.classList.add('hidden');
+      return;
+    }
+
+    if (overlay) overlay.classList.add('hidden');
+    if (content) content.classList.remove('hidden');
+
     const dailyList = document.getElementById('dailyQuestList');
     const weeklyList = document.getElementById('weeklyQuestList');
     const timerEl = document.getElementById('dailyQuestTimer');
