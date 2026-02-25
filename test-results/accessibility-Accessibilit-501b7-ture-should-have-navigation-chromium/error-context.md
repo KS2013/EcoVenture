@@ -1,0 +1,89 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e6]: 🌱
+      - heading "EcoVenture" [level=1] [ref=e7]
+      - paragraph [ref=e8]: Turn Trash Into Rewards
+    - paragraph [ref=e13]: Ready!
+    - paragraph [ref=e14]: v1.0.6-beta
+  - generic [ref=e15]:
+    - banner [ref=e16]:
+      - generic [ref=e17]:
+        - heading "🌱 EcoVenture" [level=1] [ref=e18]
+        - generic [ref=e19]:
+          - generic [ref=e20]: ✨ 0 pts
+          - generic [ref=e21]: 💎 0
+          - button "👤" [ref=e22] [cursor=pointer]
+    - main [ref=e23]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: 🔐
+        - generic [ref=e27]:
+          - strong [ref=e28]: Sign in to compete!
+          - generic [ref=e29]: Join leaderboards and sync your progress
+        - button "Sign In" [ref=e30] [cursor=pointer]
+      - generic [ref=e32]:
+        - generic [ref=e33]: 📍
+        - generic [ref=e34]: Checking location...
+      - navigation [ref=e35]:
+        - button "🏠 Home" [ref=e36] [cursor=pointer]:
+          - generic [ref=e37]: 🏠
+          - generic [ref=e38]: Home
+        - button "📅 Cleanups" [ref=e39] [cursor=pointer]:
+          - generic [ref=e40]: 📅
+          - generic [ref=e41]: Cleanups
+        - button "🎯 Quests" [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]: 🎯
+          - generic [ref=e44]: Quests
+        - button "🛒 Shop" [ref=e45] [cursor=pointer]:
+          - generic [ref=e46]: 🛒
+          - generic [ref=e47]: Shop
+        - button "👤 Profile" [ref=e48] [cursor=pointer]:
+          - generic [ref=e49]: 👤
+          - generic [ref=e50]: Profile
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - generic [ref=e56] [cursor=pointer]:
+              - generic [ref=e57]: 📹
+              - paragraph [ref=e58]: Tap to start camera
+            - generic [ref=e59]:
+              - generic [ref=e61]: REC
+              - generic [ref=e62]: 00:00
+          - generic [ref=e63]:
+            - button "🔄" [ref=e64] [cursor=pointer]
+            - button [disabled] [ref=e65]
+            - button "🔍" [disabled] [ref=e67]
+          - generic [ref=e68]:
+            - heading "How to earn points:" [level=3] [ref=e69]
+            - list [ref=e70]:
+              - listitem [ref=e71]: 📍 Be in a public place (park, street, etc.)
+              - listitem [ref=e72]: 📹 Record yourself picking up litter
+              - listitem [ref=e73]: 🗑️ Show the disposal in a bin
+              - listitem [ref=e74]: 🎁 Earn points and get rewards!
+        - generic [ref=e75]:
+          - heading "📊 Your Progress" [level=2] [ref=e76]
+          - generic [ref=e77]:
+            - generic [ref=e78] [cursor=pointer]:
+              - generic [ref=e79]: 🏆
+              - generic [ref=e80]: "0"
+              - text: Points
+            - generic [ref=e81] [cursor=pointer]:
+              - generic [ref=e82]: 📦
+              - generic [ref=e83]: "0"
+              - text: Submissions
+            - generic [ref=e84] [cursor=pointer]:
+              - generic [ref=e85]: 🔥
+              - generic [ref=e86]: "0"
+              - text: Day Streak
+            - generic [ref=e87] [cursor=pointer]:
+              - generic [ref=e88]: 🌱
+              - generic [ref=e89]: Beginner
+              - text: Level
+          - generic [ref=e91]:
+            - generic [ref=e92]: Eco Beginner
+            - generic [ref=e93]: "Next: Litter Picker"
+      - text: 💡
+```

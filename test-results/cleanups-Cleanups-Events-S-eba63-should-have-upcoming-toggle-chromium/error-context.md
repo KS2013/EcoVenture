@@ -1,0 +1,59 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - heading "🌱 EcoVenture" [level=1] [ref=e5]
+      - generic [ref=e6]:
+        - generic [ref=e7]: ✨ 0 pts
+        - generic [ref=e8]: 💎 0
+        - button "👤" [ref=e9] [cursor=pointer]
+  - main [ref=e10]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: 🔐
+      - generic [ref=e14]:
+        - strong [ref=e15]: Sign in to compete!
+        - generic [ref=e16]: Join leaderboards and sync your progress
+      - button "Sign In" [ref=e17] [cursor=pointer]
+    - generic [ref=e19]:
+      - generic [ref=e20]: 📍
+      - generic [ref=e21]: Checking location...
+    - navigation [ref=e22]:
+      - button "🏠 Home" [ref=e23] [cursor=pointer]:
+        - generic [ref=e24]: 🏠
+        - generic [ref=e25]: Home
+      - button "📅 Cleanups" [active] [ref=e26] [cursor=pointer]:
+        - generic [ref=e27]: 📅
+        - generic [ref=e28]: Cleanups
+      - button "🎯 Quests" [ref=e29] [cursor=pointer]:
+        - generic [ref=e30]: 🎯
+        - generic [ref=e31]: Quests
+      - button "🛒 Shop" [ref=e32] [cursor=pointer]:
+        - generic [ref=e33]: 🛒
+        - generic [ref=e34]: Shop
+      - button "👤 Profile" [ref=e35] [cursor=pointer]:
+        - generic [ref=e36]: 👤
+        - generic [ref=e37]: Profile
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - heading "Organized Cleanups" [level=2] [ref=e41]
+        - button "+ Create" [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]: +
+          - text: Create
+      - paragraph [ref=e44]: Join community cleanup events in your area and earn bonus points for attending!
+      - generic [ref=e45]:
+        - button "Upcoming" [ref=e46] [cursor=pointer]
+        - button "My Events" [ref=e47] [cursor=pointer]
+      - generic [ref=e50]:
+        - generic [ref=e51]: 🔐
+        - paragraph [ref=e52]: Sign in to view and join cleanup events
+        - button "Sign In" [ref=e53] [cursor=pointer]
+      - generic [ref=e54]:
+        - heading "💡 How it works" [level=4] [ref=e55]
+        - list [ref=e56]:
+          - listitem [ref=e57]: Create or join cleanup events in your area
+          - listitem [ref=e58]: Meet other eco-warriors at the event
+          - listitem [ref=e59]: Check in when you arrive to earn bonus points
+          - listitem [ref=e60]: Earn +50 bonus points for every event you attend!
+```
