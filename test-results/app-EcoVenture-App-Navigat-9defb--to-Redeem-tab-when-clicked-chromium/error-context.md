@@ -6,8 +6,8 @@
     - generic [ref=e4]:
       - heading "🌱 EcoVenture" [level=1] [ref=e5]
       - generic [ref=e6]:
-        - generic [ref=e7]: ✨ 0 pts
-        - generic [ref=e8]: 💎 0
+        - generic [ref=e7]: 0 pts
+        - generic [ref=e8]: "0"
         - button "👤" [ref=e9] [cursor=pointer]
   - main [ref=e10]:
     - generic [ref=e12]:
@@ -72,10 +72,10 @@
             - text: Day Streak
           - generic [ref=e74] [cursor=pointer]:
             - generic [ref=e75]: 🌱
-            - generic [ref=e76]: Beginner
+            - generic [ref=e76]: Eco Beginner
             - text: Level
         - generic [ref=e78]:
-          - generic [ref=e79]: Eco Beginner
-          - generic [ref=e80]: "Next: Litter Picker"
+          - generic [ref=e79]: 🌱 Eco Beginner
+          - generic [ref=e80]: "Next: Litter Picker (100 pts)"
     - text: 💡
 ```
