@@ -4,7 +4,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('Rewards & Redemption System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:3000');
-    await page.click('[data-tab="redeem"]');
+    await page.evaluate(() => switchTab('redeem'));
   });
 
   test.describe('Redeem Tab UI', () => {

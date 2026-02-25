@@ -4,7 +4,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('Leaderboard System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:3000');
-    await page.click('[data-tab="leaderboard"]');
+    await page.evaluate(() => switchTab('leaderboard'));
   });
 
   test.describe('Leaderboard UI', () => {

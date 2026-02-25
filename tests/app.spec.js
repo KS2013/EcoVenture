@@ -26,8 +26,8 @@ test.describe('EcoVenture App', () => {
     test('should have all navigation tabs', async ({ page }) => {
       await expect(page.locator('[data-tab="home"]')).toBeVisible();
       await expect(page.locator('[data-tab="cleanups"]')).toBeVisible();
-      await expect(page.locator('[data-tab="leaderboard"]')).toBeVisible();
-      await expect(page.locator('[data-tab="redeem"]')).toBeVisible();
+      await expect(page.locator('[data-tab="quests"]')).toBeVisible();
+      await expect(page.locator('[data-tab="shop"]')).toBeVisible();
       await expect(page.locator('[data-tab="profile"]')).toBeVisible();
     });
 
@@ -37,16 +37,16 @@ test.describe('EcoVenture App', () => {
       await expect(page.locator('[data-tab="cleanups"]')).toHaveClass(/active/);
     });
 
-    test('should switch to Leaderboard tab when clicked', async ({ page }) => {
-      await page.click('[data-tab="leaderboard"]');
-      await expect(page.locator('#leaderboardTab')).toBeVisible();
-      await expect(page.locator('[data-tab="leaderboard"]')).toHaveClass(/active/);
+    test('should switch to Quests tab when clicked', async ({ page }) => {
+      await page.click('[data-tab="quests"]');
+      await expect(page.locator('#questsTab')).toBeVisible();
+      await expect(page.locator('[data-tab="quests"]')).toHaveClass(/active/);
     });
 
-    test('should switch to Redeem tab when clicked', async ({ page }) => {
-      await page.click('[data-tab="redeem"]');
-      await expect(page.locator('#redeemTab')).toBeVisible();
-      await expect(page.locator('[data-tab="redeem"]')).toHaveClass(/active/);
+    test('should switch to Shop tab when clicked', async ({ page }) => {
+      await page.click('[data-tab="shop"]');
+      await expect(page.locator('#shopTab')).toBeVisible();
+      await expect(page.locator('[data-tab="shop"]')).toHaveClass(/active/);
     });
 
     test('should switch to Profile tab when clicked', async ({ page }) => {
@@ -137,7 +137,7 @@ test.describe('EcoVenture App', () => {
 
   test.describe('Leaderboard Tab', () => {
     test.beforeEach(async ({ page }) => {
-      await page.click('[data-tab="leaderboard"]');
+      await page.evaluate(() => switchTab('leaderboard'));
     });
 
     test('should display leaderboard section', async ({ page }) => {
@@ -151,7 +151,7 @@ test.describe('EcoVenture App', () => {
 
   test.describe('Redeem Tab', () => {
     test.beforeEach(async ({ page }) => {
-      await page.click('[data-tab="redeem"]');
+      await page.evaluate(() => switchTab('redeem'));
     });
 
     test('should display redeem section', async ({ page }) => {
