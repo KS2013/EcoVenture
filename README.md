@@ -87,12 +87,9 @@ npm run android:run
 
 ## Available Rewards
 
-- $5 Amazon Gift Card - 500 pts
-- $10 Amazon Gift Card - 950 pts
-- $5 Starbucks Gift Card - 500 pts
-- $10 Target Gift Card - 950 pts
-- Plant 5 Trees - 300 pts
-- Ocean Cleanup (1 lb) - 250 pts
+- $5 Gift Card - 5000 pts
+- $10 Gift Card - 9500 pts
+
 
 ## Tech Stack
 
