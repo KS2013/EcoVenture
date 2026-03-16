@@ -87,8 +87,8 @@ npm run android:run
 
 ## Available Rewards
 
-- $5 Gift Card - 5000 pts
-- $10 Gift Card - 9500 pts
+- £/$5 Gift Card - 5000 pts
+- £/$10 Gift Card - 9500 pts
 
 
 ## Tech Stack
